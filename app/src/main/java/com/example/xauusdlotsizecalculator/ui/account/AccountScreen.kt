@@ -131,6 +131,72 @@ fun AccountScreen(
         }
     }
 
+    AccountScreenContent(
+        uiState = uiState,
+        snackbarHostState = snackbarHostState,
+        onEditProp = { viewModel.setShowEditPropDialog(true) },
+        onEditDiscipline = { viewModel.setShowEditDisciplineDialog(true) },
+        onAdjustBalance = { viewModel.setShowEditBalanceDialog(true) },
+        onEditCalculator = { viewModel.setShowEditCalculatorDialog(true) },
+        onExportCsv = {
+            scope.launch {
+                val csv = viewModel.getExportCsv()
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, csv)
+                    type = "text/csv"
+                }
+                context.startActivity(Intent.createChooser(sendIntent, "Export Trades as CSV"))
+            }
+        },
+        onExportJson = {
+            scope.launch {
+                val json = viewModel.getExportJson()
+                val sendIntent = Intent().apply {
+                    action = Intent.ACTION_SEND
+                    putExtra(Intent.EXTRA_TEXT, json)
+                    type = "application/json"
+                }
+                context.startActivity(Intent.createChooser(sendIntent, "Export TradeLog Backup (JSON)"))
+            }
+        },
+        onImportJson = {
+            importJsonLauncher.launch("application/json")
+        },
+        onSaveBalance = { viewModel.onUpdateBalance(it) },
+        onDismissBalanceDialog = { viewModel.setShowEditBalanceDialog(false) },
+        onSaveProp = { viewModel.onSavePropFirmSettings(it) },
+        onDismissPropDialog = { viewModel.setShowEditPropDialog(false) },
+        onSaveDiscipline = { viewModel.onSaveDisciplineSettings(it) },
+        onDismissDisciplineDialog = { viewModel.setShowEditDisciplineDialog(false) },
+        onSaveCalculator = { viewModel.onSaveCalculatorSettings(it) },
+        onDismissCalculatorDialog = { viewModel.setShowEditCalculatorDialog(false) },
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AccountScreenContent(
+    uiState: AccountUiState,
+    snackbarHostState: SnackbarHostState? = null,
+    onEditProp: () -> Unit = {},
+    onEditDiscipline: () -> Unit = {},
+    onAdjustBalance: () -> Unit = {},
+    onEditCalculator: () -> Unit = {},
+    onExportCsv: () -> Unit = {},
+    onExportJson: () -> Unit = {},
+    onImportJson: () -> Unit = {},
+    onSaveBalance: (Double) -> Unit = {},
+    onDismissBalanceDialog: () -> Unit = {},
+    onSaveProp: (PropFirmSettings) -> Unit = {},
+    onDismissPropDialog: () -> Unit = {},
+    onSaveDiscipline: (DisciplineSettings) -> Unit = {},
+    onDismissDisciplineDialog: () -> Unit = {},
+    onSaveCalculator: (CalculatorSettings) -> Unit = {},
+    onDismissCalculatorDialog: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -165,7 +231,7 @@ fun AccountScreen(
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
         containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
@@ -181,7 +247,7 @@ fun AccountScreen(
             PropFirmCard(
                 propSettings = uiState.propFirmSettings,
                 currentBalance = uiState.currentBalance,
-                onEdit = { viewModel.setShowEditPropDialog(true) }
+                onEdit = onEditProp
             )
 
             // Section 2: Personal Trading Limits & Discipline Guard
@@ -192,45 +258,23 @@ fun AccountScreen(
                 isSessionLimit = uiState.isSessionLimitExceeded,
                 isLossStop = uiState.isDailyLossStopExceeded,
                 isProfitStop = uiState.isDailyProfitStopReached,
-                onEdit = { viewModel.setShowEditDisciplineDialog(true) }
+                onEdit = onEditDiscipline
             )
 
             // Section 3: Balance Reconcile & Tracking
             BalanceCard(
                 currentBalance = uiState.currentBalance,
                 autoSync = uiState.disciplineSettings.autoSyncBalance,
-                onAdjustBalance = { viewModel.setShowEditBalanceDialog(true) }
+                onAdjustBalance = onAdjustBalance
             )
 
             // Section 4: Settings & Data Management
             SettingsSection(
                 calculatorSettings = uiState.calculatorSettings,
-                onEditCalculator = { viewModel.setShowEditCalculatorDialog(true) },
-                onExportCsv = {
-                    scope.launch {
-                        val csv = viewModel.getExportCsv()
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, csv)
-                            type = "text/csv"
-                        }
-                        context.startActivity(Intent.createChooser(sendIntent, "Export Trades as CSV"))
-                    }
-                },
-                onExportJson = {
-                    scope.launch {
-                        val json = viewModel.getExportJson()
-                        val sendIntent = Intent().apply {
-                            action = Intent.ACTION_SEND
-                            putExtra(Intent.EXTRA_TEXT, json)
-                            type = "application/json"
-                        }
-                        context.startActivity(Intent.createChooser(sendIntent, "Export TradeLog Backup (JSON)"))
-                    }
-                },
-                onImportJson = {
-                    importJsonLauncher.launch("application/json")
-                }
+                onEditCalculator = onEditCalculator,
+                onExportCsv = onExportCsv,
+                onExportJson = onExportJson,
+                onImportJson = onImportJson
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -240,32 +284,32 @@ fun AccountScreen(
         if (uiState.showEditBalanceDialog) {
             EditBalanceDialog(
                 currentBalance = uiState.currentBalance,
-                onSave = { viewModel.onUpdateBalance(it) },
-                onDismiss = { viewModel.setShowEditBalanceDialog(false) }
+                onSave = onSaveBalance,
+                onDismiss = onDismissBalanceDialog
             )
         }
 
         if (uiState.showEditPropDialog) {
             EditPropFirmDialog(
                 current = uiState.propFirmSettings,
-                onSave = { viewModel.onSavePropFirmSettings(it) },
-                onDismiss = { viewModel.setShowEditPropDialog(false) }
+                onSave = onSaveProp,
+                onDismiss = onDismissPropDialog
             )
         }
 
         if (uiState.showEditDisciplineDialog) {
             EditDisciplineDialog(
                 current = uiState.disciplineSettings,
-                onSave = { viewModel.onSaveDisciplineSettings(it) },
-                onDismiss = { viewModel.setShowEditDisciplineDialog(false) }
+                onSave = onSaveDiscipline,
+                onDismiss = onDismissDisciplineDialog
             )
         }
 
         if (uiState.showEditCalculatorDialog) {
             EditCalculatorDialog(
                 current = uiState.calculatorSettings,
-                onSave = { viewModel.onSaveCalculatorSettings(it) },
-                onDismiss = { viewModel.setShowEditCalculatorDialog(false) }
+                onSave = onSaveCalculator,
+                onDismiss = onDismissCalculatorDialog
             )
         }
     }
@@ -895,4 +939,41 @@ private fun EditCalculatorDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "PropScholar Account & Discipline Guard", showBackground = true)
+@Composable
+fun AccountScreenPreview() {
+    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
+        AccountScreenContent(
+            uiState = AccountUiState(
+                propFirmSettings = PropFirmSettings(
+                    name = "PropScholar Freedom 5K",
+                    startingBalance = 5000.0,
+                    profitTargetPercent = 8.0,
+                    maxLossPercent = 6.0,
+                    dailyLossPercent = 3.0,
+                    maxGoldVolumeLots = 0.20
+                ),
+                disciplineSettings = DisciplineSettings(
+                    maxTradesPerSession = 4,
+                    dailyProfitStop = 150.0,
+                    dailyLossStop = 100.0,
+                    autoSyncBalance = true
+                ),
+                calculatorSettings = CalculatorSettings(
+                    defaultRiskPercent = 1.0,
+                    defaultLotStep = LotStep.STEP_0_01,
+                    contractSize = 100.0,
+                    roundingMode = LotRoundingMode.ROUND_DOWN
+                ),
+                currentBalance = 5285.50,
+                todayTradesCount = 2,
+                todayPnl = 85.50,
+                isSessionLimitExceeded = false,
+                isDailyLossStopExceeded = false,
+                isDailyProfitStopReached = false
+            )
+        )
+    }
 }

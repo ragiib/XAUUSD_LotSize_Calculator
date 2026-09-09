@@ -72,6 +72,18 @@ fun AnalyticsScreen(
 ) {
     val summary by viewModel.analyticsSummary.collectAsStateWithLifecycle()
 
+    AnalyticsScreenContent(
+        summary = summary,
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnalyticsScreenContent(
+    summary: com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary,
+    modifier: Modifier = Modifier
+) {
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -590,5 +602,78 @@ private fun KpiMetricItem(
             )
             Text(text = subValue, fontSize = 10.sp, color = TvSilver.copy(alpha = 0.7f))
         }
+    }
+}
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Analytics Dashboard", showBackground = true)
+@Composable
+fun AnalyticsDashboardPreview() {
+    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
+        AnalyticsScreenContent(
+            summary = com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary(
+                totalTrades = 18,
+                wins = 12,
+                losses = 5,
+                breakevens = 1,
+                winRate = 66.7,
+                totalProfit = 1420.50,
+                totalLoss = 640.00,
+                netProfitLoss = 780.50,
+                profitFactor = 2.22,
+                averageWin = 118.38,
+                averageLoss = 128.00,
+                largestWin = 310.00,
+                largestLoss = 150.00,
+                averageR = 1.35,
+                dailyPerformance = com.example.xauusdlotsizecalculator.domain.model.DailyPerformance(
+                    netProfitLoss = 245.00,
+                    percentChange = 4.9,
+                    tradeCount = 3,
+                    wins = 2,
+                    losses = 1,
+                    breakevens = 0,
+                    averageR = 1.63,
+                    status = com.example.xauusdlotsizecalculator.domain.model.DayPerformanceStatus.POSITIVE
+                ),
+                setupPerformances = listOf(
+                    com.example.xauusdlotsizecalculator.domain.model.SetupPerformance(
+                        setupName = "London Breakout",
+                        tradeCount = 8,
+                        winCount = 6,
+                        winRate = 75.0,
+                        totalR = 4.8,
+                        netProfitLoss = 580.00
+                    ),
+                    com.example.xauusdlotsizecalculator.domain.model.SetupPerformance(
+                        setupName = "Order Block",
+                        tradeCount = 6,
+                        winCount = 4,
+                        winRate = 66.7,
+                        totalR = 2.4,
+                        netProfitLoss = 280.00
+                    ),
+                    com.example.xauusdlotsizecalculator.domain.model.SetupPerformance(
+                        setupName = "Asia Sweep",
+                        tradeCount = 4,
+                        winCount = 2,
+                        winRate = 50.0,
+                        totalR = -0.6,
+                        netProfitLoss = -79.50
+                    )
+                ),
+                mistakeImpacts = listOf(
+                    com.example.xauusdlotsizecalculator.domain.model.MistakeImpact(
+                        mistakeName = "Moved Stop Loss Early",
+                        occurrenceCount = 3,
+                        financialLossImpact = 210.00
+                    ),
+                    com.example.xauusdlotsizecalculator.domain.model.MistakeImpact(
+                        mistakeName = "FOMO / Chased Entry",
+                        occurrenceCount = 2,
+                        financialLossImpact = 185.00
+                    )
+                )
+            )
+        )
     }
 }

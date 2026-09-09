@@ -433,3 +433,30 @@ private fun MetricBox(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Result Card", showBackground = true)
+@Composable
+fun ResultCardPreview() {
+    val sampleInput = com.example.xauusdlotsizecalculator.domain.model.CalculationInput(
+        balance = java.math.BigDecimal("5000"),
+        riskPercent = java.math.BigDecimal("1"),
+        entryPrice = java.math.BigDecimal("2650.00"),
+        slPercent = java.math.BigDecimal("0.18868"),
+        direction = com.example.xauusdlotsizecalculator.domain.model.TradeDirection.BUY,
+        contractSize = java.math.BigDecimal("100"),
+        lotStep = com.example.xauusdlotsizecalculator.domain.model.LotStep.STEP_0_01,
+        roundingMode = com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode.ROUND_DOWN,
+        slPrice = java.math.BigDecimal("2645.00"),
+        takeProfitPrice = java.math.BigDecimal("2662.50")
+    )
+    val sampleResult = com.example.xauusdlotsizecalculator.domain.calculator.XauusdLotCalculator.calculate(sampleInput)
+
+    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
+        ResultCard(
+            result = sampleResult,
+            onCopyFeedback = {},
+            onSaveAsTrade = {}
+        )
+    }
+}
+

@@ -269,3 +269,33 @@ fun TradeCard(
         }
     }
 }
+
+@androidx.compose.ui.tooling.preview.Preview(name = "Trade Card - Winner", showBackground = true)
+@Composable
+fun TradeCardWinnerPreview() {
+    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
+        TradeCard(
+            trade = Trade(
+                id = 1,
+                dateEpochMs = System.currentTimeMillis(),
+                symbol = "XAUUSD",
+                direction = TradeDirection.BUY,
+                lotSize = 0.20,
+                entryPrice = 2650.00,
+                stopLossPrice = 2645.00,
+                takeProfitPrice = 2662.50,
+                exitPrice = 2662.50,
+                status = TradeStatus.WIN,
+                setup = "London Breakout",
+                setupQuality = com.example.xauusdlotsizecalculator.domain.model.SetupQuality.A_PLUS,
+                plannedRiskAmount = 100.0,
+                profitLoss = 250.0,
+                rMultiple = 2.50,
+                mistakes = emptyList(),
+                emotionBefore = "Calm",
+                emotionAfter = "Confident"
+            ),
+            onClick = {}
+        )
+    }
+}

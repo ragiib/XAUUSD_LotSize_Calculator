@@ -1,7 +1,6 @@
 package com.example.xauusdlotsizecalculator.ui.journal
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -52,22 +50,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.xauusdlotsizecalculator.domain.model.DEFAULT_MISTAKES
 import com.example.xauusdlotsizecalculator.domain.model.DEFAULT_SETUPS
+import com.example.xauusdlotsizecalculator.domain.model.SetupQuality
+import com.example.xauusdlotsizecalculator.domain.model.Trade
+import com.example.xauusdlotsizecalculator.domain.model.TradeDirection
+import com.example.xauusdlotsizecalculator.domain.model.TradeStatus
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
+import com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme
 import com.example.xauusdlotsizecalculator.ui.journal.components.AddEditTradeSheet
 import com.example.xauusdlotsizecalculator.ui.journal.components.TradeCard
 import com.example.xauusdlotsizecalculator.ui.journal.components.TradeDetailBottomSheet
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun JournalScreen(
     viewModel: JournalViewModel,
@@ -75,8 +77,46 @@ fun JournalScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val trades by viewModel.filteredTrades.collectAsStateWithLifecycle()
-    val snackbarHostState = remember { SnackbarHostState() }
 
+    JournalScreenContent(
+        uiState = uiState,
+        trades = trades,
+        onResultFilterSelected = { viewModel.onResultFilterSelected(it) },
+        onSetupFilterSelected = { viewModel.onSetupFilterSelected(it) },
+        onSortOptionSelected = { viewModel.onSortOptionSelected(it) },
+        onTradeClicked = { viewModel.onTradeClicked(it) },
+        onOpenAddSheet = { viewModel.onOpenAddSheet() },
+        onDismissDetailSheet = { viewModel.onDismissDetailSheet() },
+        onDismissAddEditSheet = { viewModel.onDismissAddEditSheet() },
+        onSaveTrade = { viewModel.onSaveTrade(it) },
+        onEditTradeClicked = { viewModel.onEditTradeClicked(it) },
+        onDuplicateTrade = { viewModel.onDuplicateTrade(it) },
+        onDeleteTrade = { viewModel.onDeleteTrade(it) },
+        onSnackbarDismissed = { viewModel.onSnackbarDismissed() },
+        modifier = modifier
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun JournalScreenContent(
+    uiState: JournalUiState,
+    trades: List<Trade>,
+    onResultFilterSelected: (TradeResultFilter) -> Unit,
+    onSetupFilterSelected: (String?) -> Unit,
+    onSortOptionSelected: (TradeSortOption) -> Unit,
+    onTradeClicked: (Trade) -> Unit,
+    onOpenAddSheet: () -> Unit,
+    onDismissDetailSheet: () -> Unit,
+    onDismissAddEditSheet: () -> Unit,
+    onSaveTrade: (Trade) -> Unit,
+    onEditTradeClicked: (Trade) -> Unit,
+    onDuplicateTrade: (Trade) -> Unit,
+    onDeleteTrade: (Trade) -> Unit,
+    onSnackbarDismissed: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val snackbarHostState = remember { SnackbarHostState() }
     val detailSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val addSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -86,7 +126,7 @@ fun JournalScreen(
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
-            viewModel.onSnackbarDismissed()
+            onSnackbarDismissed()
         }
     }
 
@@ -137,7 +177,7 @@ fun JournalScreen(
                                 DropdownMenuItem(
                                     text = { Text(opt.displayName) },
                                     onClick = {
-                                        viewModel.onSortOptionSelected(opt)
+                                        onSortOptionSelected(opt)
                                         showSortMenu = false
                                     }
                                 )
@@ -161,7 +201,7 @@ fun JournalScreen(
                             DropdownMenuItem(
                                 text = { Text("All Setups") },
                                 onClick = {
-                                    viewModel.onSetupFilterSelected(null)
+                                    onSetupFilterSelected(null)
                                     showSetupMenu = false
                                 }
                             )
@@ -169,7 +209,7 @@ fun JournalScreen(
                                 DropdownMenuItem(
                                     text = { Text(s) },
                                     onClick = {
-                                        viewModel.onSetupFilterSelected(s)
+                                        onSetupFilterSelected(s)
                                         showSetupMenu = false
                                     }
                                 )
@@ -184,7 +224,7 @@ fun JournalScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.onOpenAddSheet() },
+                onClick = onOpenAddSheet,
                 containerColor = TvPurplePrimary,
                 contentColor = Color.White,
                 shape = CircleShape
@@ -213,7 +253,7 @@ fun JournalScreen(
                     val isSelected = uiState.resultFilter == f
                     FilterChip(
                         selected = isSelected,
-                        onClick = { viewModel.onResultFilterSelected(f) },
+                        onClick = { onResultFilterSelected(f) },
                         label = { Text(f.displayName, fontSize = 12.sp) },
                         shape = RoundedCornerShape(8.dp),
                         colors = FilterChipDefaults.filterChipColors(
@@ -230,7 +270,7 @@ fun JournalScreen(
                 if (uiState.selectedSetupFilter != null) {
                     FilterChip(
                         selected = true,
-                        onClick = { viewModel.onSetupFilterSelected(null) },
+                        onClick = { onSetupFilterSelected(null) },
                         label = { Text("Setup: ${uiState.selectedSetupFilter} ✕", fontSize = 12.sp) },
                         shape = RoundedCornerShape(8.dp),
                         colors = FilterChipDefaults.filterChipColors(
@@ -294,7 +334,7 @@ fun JournalScreen(
                     items(trades, key = { it.id }) { trade ->
                         TradeCard(
                             trade = trade,
-                            onClick = { viewModel.onTradeClicked(trade) }
+                            onClick = { onTradeClicked(trade) }
                         )
                     }
                 }
@@ -306,10 +346,10 @@ fun JournalScreen(
             TradeDetailBottomSheet(
                 trade = uiState.selectedTradeForDetail!!,
                 sheetState = detailSheetState,
-                onDismiss = { viewModel.onDismissDetailSheet() },
-                onEdit = { viewModel.onEditTradeClicked(it) },
-                onDuplicate = { viewModel.onDuplicateTrade(it) },
-                onDelete = { viewModel.onDeleteTrade(it) }
+                onDismiss = onDismissDetailSheet,
+                onEdit = onEditTradeClicked,
+                onDuplicate = onDuplicateTrade,
+                onDelete = onDeleteTrade
             )
         }
 
@@ -318,9 +358,114 @@ fun JournalScreen(
             AddEditTradeSheet(
                 trade = uiState.selectedTradeForEdit,
                 sheetState = addSheetState,
-                onSave = { viewModel.onSaveTrade(it) },
-                onDismiss = { viewModel.onDismissAddEditSheet() }
+                onSave = onSaveTrade,
+                onDismiss = onDismissAddEditSheet
             )
         }
+    }
+}
+
+@Preview(name = "Trade Journal - Active Trades", showBackground = true)
+@Composable
+fun JournalScreenPreview() {
+    val sampleTrades = listOf(
+        Trade(
+            id = 1,
+            symbol = "XAUUSD",
+            direction = TradeDirection.BUY,
+            entryPrice = 2650.00,
+            exitPrice = 2665.00,
+            stopLossPrice = 2642.50,
+            takeProfitPrice = 2670.00,
+            lotSize = 0.15,
+            plannedRiskAmount = 112.50,
+            plannedRiskPercent = 2.0,
+            slDistance = 7.50,
+            plannedRrRatio = 2.67,
+            status = TradeStatus.WIN,
+            profitLoss = 225.00,
+            profitLossPercent = 200.0,
+            rMultiple = 2.00,
+            setup = "Liquidity Sweep",
+            setupQuality = SetupQuality.A_PLUS,
+            mistakes = listOf("No mistake")
+        ),
+        Trade(
+            id = 2,
+            symbol = "XAUUSD",
+            direction = TradeDirection.SELL,
+            entryPrice = 2660.00,
+            exitPrice = 2666.00,
+            stopLossPrice = 2666.00,
+            lotSize = 0.10,
+            plannedRiskAmount = 60.00,
+            plannedRiskPercent = 1.0,
+            slDistance = 6.00,
+            status = TradeStatus.LOSS,
+            profitLoss = -60.00,
+            profitLossPercent = -100.0,
+            rMultiple = -1.00,
+            setup = "Fair Value Gap",
+            setupQuality = SetupQuality.GOOD,
+            mistakes = listOf("FOMO", "Entered too early")
+        ),
+        Trade(
+            id = 3,
+            symbol = "XAUUSD",
+            direction = TradeDirection.BUY,
+            entryPrice = 2655.00,
+            stopLossPrice = 2650.00,
+            takeProfitPrice = 2667.50,
+            lotSize = 0.08,
+            plannedRiskAmount = 40.00,
+            plannedRiskPercent = 0.8,
+            slDistance = 5.00,
+            plannedRrRatio = 2.50,
+            status = TradeStatus.OPEN,
+            setup = "Break & Retest",
+            setupQuality = SetupQuality.A_PLUS
+        )
+    )
+
+    XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
+        JournalScreenContent(
+            uiState = JournalUiState(),
+            trades = sampleTrades,
+            onResultFilterSelected = {},
+            onSetupFilterSelected = {},
+            onSortOptionSelected = {},
+            onTradeClicked = {},
+            onOpenAddSheet = {},
+            onDismissDetailSheet = {},
+            onDismissAddEditSheet = {},
+            onSaveTrade = {},
+            onEditTradeClicked = {},
+            onDuplicateTrade = {},
+            onDeleteTrade = {},
+            onSnackbarDismissed = {}
+        )
+    }
+}
+
+@Preview(name = "Trade Journal - Empty State", showBackground = true)
+@Composable
+fun JournalScreenEmptyPreview() {
+    XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
+        JournalScreenContent(
+            uiState = JournalUiState(),
+            trades = emptyList(),
+            onResultFilterSelected = {},
+            onSetupFilterSelected = {},
+            onSortOptionSelected = {},
+            onTradeClicked = {},
+            onOpenAddSheet = {},
+            onDismissDetailSheet = {},
+            onDismissAddEditSheet = {},
+            onSaveTrade = {},
+            onEditTradeClicked = {},
+            onDuplicateTrade = {},
+            onDeleteTrade = {},
+            onSnackbarDismissed = {}
+        )
     }
 }
