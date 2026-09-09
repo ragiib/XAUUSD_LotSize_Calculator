@@ -294,6 +294,8 @@ class TradeRepository(
         val todayBreakevens = todayTrades.count { it.status == TradeStatus.BREAKEVEN }
         val todayTotalR = todayTrades.mapNotNull { it.rMultiple }.sum()
         val todayAvgR = if (todayTrades.isNotEmpty()) todayTotalR / todayTrades.size else 0.0
+        val todayBest = todayTrades.mapNotNull { it.profitLoss }.maxOrNull()
+        val todayWorst = todayTrades.mapNotNull { it.profitLoss }.minOrNull()
 
         val dayStatus = when {
             todayTrades.isEmpty() -> DayPerformanceStatus.NO_TRADES
@@ -308,6 +310,8 @@ class TradeRepository(
             losses = todayLosses,
             breakevens = todayBreakevens,
             averageR = todayAvgR,
+            bestTrade = todayBest,
+            worstTrade = todayWorst,
             status = dayStatus
         )
 

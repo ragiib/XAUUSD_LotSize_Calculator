@@ -121,21 +121,29 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
 
     fun onSaveTrade(trade: Trade) {
         viewModelScope.launch {
+            val discipline = settingsRepo.getDisciplineSettings()
             if (trade.id == 0L) {
                 repository.saveTrade(trade)
                 _uiState.update { it.copy(snackbarMessage = "Trade logged successfully") }
 
                 // Auto-sync balance if closed trade with P/L
-                if (trade.isClosed && trade.profitLoss != null) {
-                    val discipline = settingsRepo.getDisciplineSettings()
-                    if (discipline.autoSyncBalance) {
-                        val currentBalance = settingsRepo.getCurrentBalance()
-                        settingsRepo.saveCurrentBalance(currentBalance + trade.profitLoss)
-                    }
+                if (trade.isClosed && trade.profitLoss != null && discipline.autoSyncBalance) {
+                    val currentBalance = settingsRepo.getCurrentBalance()
+                    settingsRepo.saveCurrentBalance(currentBalance + trade.profitLoss)
                 }
             } else {
+                val oldTrade = repository.getTrade(trade.id)
+                val oldPnl = if (oldTrade?.isClosed == true) oldTrade.profitLoss ?: 0.0 else 0.0
+                val newPnl = if (trade.isClosed) trade.profitLoss ?: 0.0 else 0.0
+                val delta = newPnl - oldPnl
+
                 repository.updateTrade(trade)
                 _uiState.update { it.copy(snackbarMessage = "Trade updated") }
+
+                if (delta != 0.0 && discipline.autoSyncBalance) {
+                    val currentBalance = settingsRepo.getCurrentBalance()
+                    settingsRepo.saveCurrentBalance(currentBalance + delta)
+                }
             }
             onDismissAddEditSheet()
         }
@@ -143,6 +151,11 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
 
     fun onDeleteTrade(trade: Trade) {
         viewModelScope.launch {
+            val discipline = settingsRepo.getDisciplineSettings()
+            if (trade.isClosed && trade.profitLoss != null && discipline.autoSyncBalance) {
+                val currentBalance = settingsRepo.getCurrentBalance()
+                settingsRepo.saveCurrentBalance(currentBalance - trade.profitLoss)
+            }
             repository.deleteTrade(trade.id)
             _uiState.update { it.copy(selectedTradeForDetail = null, snackbarMessage = "Trade deleted") }
         }

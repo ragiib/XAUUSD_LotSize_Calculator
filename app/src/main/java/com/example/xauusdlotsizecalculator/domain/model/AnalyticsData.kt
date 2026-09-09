@@ -14,6 +14,8 @@ data class DailyPerformance(
     val losses: Int = 0,
     val breakevens: Int = 0,
     val averageR: Double = 0.0,
+    val bestTrade: Double? = null,
+    val worstTrade: Double? = null,
     val status: DayPerformanceStatus = DayPerformanceStatus.NO_TRADES
 )
 

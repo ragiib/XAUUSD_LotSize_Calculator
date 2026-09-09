@@ -249,6 +249,44 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
                     }
                 }
             }
+
+            if (daily.tradeCount > 0 && (daily.bestTrade != null || daily.worstTrade != null)) {
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        daily.bestTrade?.let { b ->
+                            val bSign = if (b >= 0) "+" else ""
+                            Text(
+                                text = "Best: $bSign$${DecimalFormat("#,##0.00").format(b)}",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TvGreenProfit
+                            )
+                        }
+
+                        daily.worstTrade?.let { w ->
+                            val wSign = if (w > 0) "+" else if (w < 0) "-" else ""
+                            Text(
+                                text = "Worst: $wSign$${DecimalFormat("#,##0.00").format(Math.abs(w))}",
+                                fontSize = 11.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (w < 0) TvRedLoss else TvSilver
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -633,6 +671,8 @@ fun AnalyticsDashboardPreview() {
                     losses = 1,
                     breakevens = 0,
                     averageR = 1.63,
+                    bestTrade = 185.00,
+                    worstTrade = -60.00,
                     status = com.example.xauusdlotsizecalculator.domain.model.DayPerformanceStatus.POSITIVE
                 ),
                 setupPerformances = listOf(

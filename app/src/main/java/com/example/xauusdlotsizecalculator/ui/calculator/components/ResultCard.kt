@@ -224,7 +224,7 @@ fun ResultCard(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "Prop-Firm Volume Limit Warning",
+                                    text = "⚠️ XAUUSD LIMIT EXCEEDED",
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TvWarningText

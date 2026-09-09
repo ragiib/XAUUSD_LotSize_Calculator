@@ -398,7 +398,7 @@ fun CalculatorScreenPropWarningPreview() {
                 direction = TradeDirection.BUY,
                 result = sampleResult,
                 isPropFirmLimitExceeded = true,
-                propFirmWarningMessage = "⚠️ PropScholar Freedom 5K XAUUSD limit exceeded. Maximum simultaneous Gold volume: 0.20 lots.",
+                propFirmWarningMessage = "Maximum simultaneous Gold volume:\n0.20 lots",
                 propFirmRiskAtLimitText = "At max 0.20 lots, actual risk is $40.00 (0.80%) instead of $100.00"
             ),
             onBalanceChange = {},

@@ -198,7 +198,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
             val prop = state.propFirmSettings
             val isLimitExceeded = prop.enabled && result.brokerLotSize.toDouble() > prop.maxGoldVolumeLots
             val warningMsg = if (isLimitExceeded) {
-                "⚠️ ${prop.name} XAUUSD limit exceeded. Maximum simultaneous Gold volume: ${DecimalFormat("0.00").format(prop.maxGoldVolumeLots)} lots."
+                "Maximum simultaneous Gold volume:\n${DecimalFormat("0.00").format(prop.maxGoldVolumeLots)} lots"
             } else null
 
             val riskAtLimitText = if (isLimitExceeded) {
