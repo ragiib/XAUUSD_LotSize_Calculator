@@ -217,4 +217,75 @@ class XauusdLotCalculatorTest {
         )
         assertFalse(validation.isValid)
     }
+
+    @Test
+    fun testSlPriceCalculation_MatchesSlPercent() {
+        // Entry 2600, SL Price 2595 (distance = 5 pts)
+        // slPercent = 5 / 2600 * 100 = 0.19230769%
+        val entry = BigDecimal("2600.00")
+        val slPrice = BigDecimal("2595.00")
+        val distance = XauusdLotCalculator.calculateSlDistanceFromPrice(entry, slPrice)
+        assertEquals(5.0, distance.toDouble(), 0.0001)
+
+        val input = CalculationInput(
+            balance = BigDecimal("5000"),
+            riskPercent = BigDecimal("1"), // $50 risk
+            entryPrice = entry,
+            slPercent = BigDecimal("0.19230769"),
+            direction = TradeDirection.BUY,
+            contractSize = BigDecimal("100"),
+            lotStep = LotStep.STEP_0_01,
+            slPrice = slPrice
+        )
+        val result = XauusdLotCalculator.calculate(input)
+        assertEquals(50.0, result.riskAmount.toDouble(), 0.0001)
+        assertEquals(5.0, result.slDistance.toDouble(), 0.0001)
+        // 50 / (5 * 100) = 0.10 lots
+        assertEquals(0.10, result.brokerLotSize.toDouble(), 0.0001)
+    }
+
+    @Test
+    fun testPlannedRrCalculation() {
+        // Entry 2600, SL 2595 (5 pts risk), TP 2615 (15 pts reward) -> 1 : 3.0 R:R
+        val rr = XauusdLotCalculator.calculatePlannedRr(
+            BigDecimal("2600"),
+            BigDecimal("2595"),
+            BigDecimal("2615")
+        )
+        assertNotNull(rr)
+        assertEquals(3.0, rr!!.toDouble(), 0.0001)
+    }
+
+    @Test
+    fun testTradeMetricsCalculation_WinAndLoss() {
+        // WIN: Buy at 2600, exit at 2610 (+10 pts), lot = 0.10, contract = 100
+        // P/L = 10 * 0.10 * 100 = $100. Risk was $50 -> +2.0R
+        val winMetrics = XauusdLotCalculator.calculateTradeMetrics(
+            entryPrice = 2600.0,
+            exitPrice = 2610.0,
+            slPrice = 2595.0,
+            lotSize = 0.10,
+            contractSize = 100.0,
+            direction = TradeDirection.BUY,
+            plannedRiskAmount = 50.0
+        )
+        assertEquals(100.0, winMetrics.first, 0.01) // P/L $
+        assertEquals(200.0, winMetrics.second, 0.01) // P/L %
+        assertEquals(2.0, winMetrics.third, 0.01) // +2R
+
+        // LOSS: Buy at 2600, exit at 2595 (-5 pts), lot = 0.10, contract = 100
+        // P/L = -5 * 0.10 * 100 = -$50. Risk was $50 -> -1.0R
+        val lossMetrics = XauusdLotCalculator.calculateTradeMetrics(
+            entryPrice = 2600.0,
+            exitPrice = 2595.0,
+            slPrice = 2595.0,
+            lotSize = 0.10,
+            contractSize = 100.0,
+            direction = TradeDirection.BUY,
+            plannedRiskAmount = 50.0
+        )
+        assertEquals(-50.0, lossMetrics.first, 0.01)
+        assertEquals(-100.0, lossMetrics.second, 0.01)
+        assertEquals(-1.0, lossMetrics.third, 0.01) // -1R
+    }
 }

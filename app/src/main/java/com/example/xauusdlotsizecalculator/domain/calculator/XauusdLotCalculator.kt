@@ -96,12 +96,78 @@ object XauusdLotCalculator {
     }
 
     /**
+     * Calculate SL Distance from Entry Price and SL Price
+     */
+    fun calculateSlDistanceFromPrice(entryPrice: BigDecimal, slPrice: BigDecimal): BigDecimal {
+        require(entryPrice > BigDecimal.ZERO) { "Entry price must be positive" }
+        require(slPrice > BigDecimal.ZERO) { "SL price must be positive" }
+        return entryPrice.subtract(slPrice, MATH_CONTEXT).abs()
+    }
+
+    /**
+     * Calculate SL Percentage from SL Distance
+     */
+    fun calculateSlPercentFromDistance(entryPrice: BigDecimal, slDistance: BigDecimal): BigDecimal {
+        require(entryPrice > BigDecimal.ZERO) { "Entry price must be positive" }
+        require(slDistance >= BigDecimal.ZERO) { "SL distance cannot be negative" }
+        return slDistance.multiply(ONE_HUNDRED, MATH_CONTEXT).divide(entryPrice, MATH_CONTEXT)
+    }
+
+    /**
+     * Calculate Planned Reward to Risk ratio
+     */
+    fun calculatePlannedRr(
+        entryPrice: BigDecimal,
+        slPrice: BigDecimal,
+        tpPrice: BigDecimal
+    ): BigDecimal? {
+        val slDist = entryPrice.subtract(slPrice, MATH_CONTEXT).abs()
+        val tpDist = tpPrice.subtract(entryPrice, MATH_CONTEXT).abs()
+        if (slDist.compareTo(BigDecimal.ZERO) == 0) return null
+        return tpDist.divide(slDist, MATH_CONTEXT)
+    }
+
+    /**
+     * Calculate financial trade performance metrics
+     * Returns Triple(profitLossAmount, profitLossPercent, rMultiple)
+     */
+    fun calculateTradeMetrics(
+        entryPrice: Double,
+        exitPrice: Double,
+        slPrice: Double,
+        lotSize: Double,
+        contractSize: Double,
+        direction: TradeDirection,
+        plannedRiskAmount: Double
+    ): Triple<Double, Double, Double> {
+        val priceDiff = if (direction == TradeDirection.BUY) {
+            exitPrice - entryPrice
+        } else {
+            entryPrice - exitPrice
+        }
+        val profitLossAmount = priceDiff * lotSize * contractSize
+        val slDist = Math.abs(entryPrice - slPrice)
+        val actualRisk = if (plannedRiskAmount > 0.0) plannedRiskAmount else (slDist * lotSize * contractSize)
+        val profitLossPercent = if (actualRisk > 0.0) (profitLossAmount / actualRisk) * 100.0 else 0.0
+        val rMultiple = if (actualRisk > 0.0) profitLossAmount / actualRisk else 0.0
+        return Triple(profitLossAmount, profitLossPercent, rMultiple)
+    }
+
+    /**
      * Perform the complete calculation workflow
      */
     fun calculate(input: CalculationInput): CalculationResult {
         val riskAmount = calculateRiskAmount(input.balance, input.riskPercent)
-        val slDistance = calculateSlDistance(input.entryPrice, input.slPercent)
-        val slPrice = calculateSlPrice(input.entryPrice, slDistance, input.direction)
+        val slDistance = if (input.slPrice != null && input.slPrice > BigDecimal.ZERO) {
+            calculateSlDistanceFromPrice(input.entryPrice, input.slPrice)
+        } else {
+            calculateSlDistance(input.entryPrice, input.slPercent)
+        }
+        val slPrice = if (input.slPrice != null && input.slPrice > BigDecimal.ZERO) {
+            input.slPrice
+        } else {
+            calculateSlPrice(input.entryPrice, slDistance, input.direction)
+        }
         val dollarRiskPerLot = calculateDollarRiskPerLot(slDistance, input.contractSize)
         val exactLotSize = calculateExactLotSize(riskAmount, dollarRiskPerLot)
         val brokerLotSize = roundToLotStep(exactLotSize, input.lotStep.step, input.roundingMode)
@@ -114,6 +180,10 @@ object XauusdLotCalculator {
         }
 
         val isBelowMinimumLot = exactLotSize < input.lotStep.step && brokerLotSize.compareTo(BigDecimal.ZERO) == 0
+
+        val plannedRrRatio = if (input.takeProfitPrice != null && input.takeProfitPrice > BigDecimal.ZERO) {
+            calculatePlannedRr(input.entryPrice, slPrice, input.takeProfitPrice)
+        } else null
 
         return CalculationResult(
             riskAmount = riskAmount,
@@ -128,7 +198,9 @@ object XauusdLotCalculator {
             lotStep = input.lotStep,
             roundingMode = input.roundingMode,
             direction = input.direction,
-            isBelowMinimumLot = isBelowMinimumLot
+            isBelowMinimumLot = isBelowMinimumLot,
+            takeProfitPrice = input.takeProfitPrice,
+            plannedRrRatio = plannedRrRatio
         )
     }
 

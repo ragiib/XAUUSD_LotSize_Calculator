@@ -40,11 +40,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.xauusdlotsizecalculator.domain.model.Trade
 import com.example.xauusdlotsizecalculator.ui.calculator.components.CalculationDetailsCard
 import com.example.xauusdlotsizecalculator.ui.calculator.components.CalculatorInputs
 import com.example.xauusdlotsizecalculator.ui.calculator.components.DirectionSelector
@@ -55,7 +55,8 @@ import com.example.xauusdlotsizecalculator.ui.calculator.components.SettingsBott
 @Composable
 fun CalculatorScreen(
     viewModel: CalculatorViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSaveAsTrade: (Trade) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -82,15 +83,15 @@ fun CalculatorScreen(
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(
-                                text = "XAU",
-                                fontSize = 12.sp,
+                                text = "XAUUSD",
+                                fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
                         Text(
-                            text = "Lot Calculator",
+                            text = "Lot Sizer",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onBackground
@@ -147,6 +148,12 @@ fun CalculatorScreen(
                 onEntryPriceChange = { viewModel.onEntryPriceChange(it) },
                 slPercent = uiState.slPercentInput,
                 onSlPercentChange = { viewModel.onSlPercentChange(it) },
+                slPrice = uiState.slPriceInput,
+                onSlPriceChange = { viewModel.onSlPriceChange(it) },
+                tpPrice = uiState.tpPriceInput,
+                onTpPriceChange = { viewModel.onTpPriceChange(it) },
+                slMode = uiState.slMode,
+                onSlModeChange = { viewModel.onSlModeChange(it) },
                 selectedLotStep = uiState.lotStep,
                 onLotStepChange = { viewModel.onLotStepChange(it) },
                 validation = uiState.validation
@@ -200,7 +207,15 @@ fun CalculatorScreen(
             // Results Card
             ResultCard(
                 result = uiState.result,
-                onCopyFeedback = { viewModel.onCopyMessage(it) }
+                onCopyFeedback = { viewModel.onCopyMessage(it) },
+                isPropFirmLimitExceeded = uiState.isPropFirmLimitExceeded,
+                propFirmWarningMessage = uiState.propFirmWarningMessage,
+                propFirmRiskAtLimitText = uiState.propFirmRiskAtLimitText,
+                onSaveAsTrade = {
+                    viewModel.createTradeFromCalculation()?.let { trade ->
+                        onSaveAsTrade(trade)
+                    }
+                }
             )
 
             // Transparent Calculation Details (Expandable)
@@ -218,7 +233,7 @@ fun CalculatorScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "100% Offline Position Sizer • Zero Network Access",
+                    text = "TradeLog • 100% Offline • Zero Network Tracking",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 )

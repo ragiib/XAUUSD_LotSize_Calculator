@@ -45,6 +45,28 @@ val TvTextPrimary = Color(0xFFF9FAFB)
 val TvTextSecondary = Color(0xFF9CA3AF)
 val TvTextMuted = Color(0xFF6B7280)
 
+// Trading Performance & Badge Colors
+val TvGreenProfit = Color(0xFF10B981)      // Emerald Green for Wins / Profits
+val TvGreenContainer = Color(0xFF07271E)   // Deep Emerald Container
+val TvGreenContainerBorder = Color(0xFF065F46)
+val TvGreenText = Color(0xFF34D399)
+
+val TvRedLoss = Color(0xFFEF4444)          // Crimson for Losses
+val TvRedContainer = Color(0xFF2C0B0E)     // Deep Crimson Container
+val TvRedContainerBorder = Color(0xFF7F1D1D)
+val TvRedText = Color(0xFFF87171)
+
+val TvBreakeven = Color(0xFF9CA3AF)        // Neutral Silver for Breakeven
+val TvBreakevenContainer = Color(0xFF1F242C)
+
+val TvWarning = Color(0xFFF59E0B)          // Amber for Prop Warnings & Limits
+val TvWarningContainer = Color(0xFF2B1804)
+val TvWarningContainerBorder = Color(0xFF78350F)
+val TvWarningText = Color(0xFFFBBF24)
+
+val TvGoldAccent = Color(0xFFEAB308)       // Gold rating / stars
+val TvGoldBadgeContainer = Color(0xFF2E2204)
+
 // Light fallback
 val TvLightBackground = Color(0xFFF8FAFC)
 val TvLightSurface = Color(0xFFFFFFFF)

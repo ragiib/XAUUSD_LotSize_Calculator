@@ -16,8 +16,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -39,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.example.xauusdlotsizecalculator.domain.model.CalculationResult
 import com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode
 import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
+import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvLightGrey
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
@@ -48,12 +53,20 @@ import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
+import com.example.xauusdlotsizecalculator.theme.TvWarning
+import com.example.xauusdlotsizecalculator.theme.TvWarningContainer
+import com.example.xauusdlotsizecalculator.theme.TvWarningContainerBorder
+import com.example.xauusdlotsizecalculator.theme.TvWarningText
 
 @Composable
 fun ResultCard(
     result: CalculationResult?,
     onCopyFeedback: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPropFirmLimitExceeded: Boolean = false,
+    propFirmWarningMessage: String? = null,
+    propFirmRiskAtLimitText: String? = null,
+    onSaveAsTrade: (() -> Unit)? = null
 ) {
     val clipboardManager = LocalClipboardManager.current
 
@@ -190,7 +203,55 @@ fun ResultCard(
                     }
                 }
 
-                // Minimum Lot Notice if applicable (matching chart aesthetic, not red)
+                // PropScholar Risk Guard Warning (Prominent warning when limit exceeded)
+                if (isPropFirmLimitExceeded && propFirmWarningMessage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = TvWarningContainer,
+                        border = BorderStroke(1.2.dp, TvWarningContainerBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.WarningAmber,
+                                    contentDescription = "Warning",
+                                    tint = TvWarning,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Prop-Firm Volume Limit Warning",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TvWarningText
+                                )
+                            }
+
+                            Text(
+                                text = propFirmWarningMessage,
+                                fontSize = 12.sp,
+                                color = TvSilverBright,
+                                lineHeight = 16.sp
+                            )
+
+                            if (propFirmRiskAtLimitText != null) {
+                                Text(
+                                    text = propFirmRiskAtLimitText,
+                                    fontSize = 11.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TvWarning
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Minimum Lot Notice if applicable
                 if (result.isBelowMinimumLot) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -219,7 +280,7 @@ fun ResultCard(
                     }
                 }
 
-                // Divider line (TradingView subtle separator)
+                // Divider line
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -239,9 +300,8 @@ fun ResultCard(
                         modifier = Modifier.weight(1f)
                     )
 
-                    // Calculated SL Price: Purple for BUY, Light Grey for SELL (Zero red!)
                     MetricBox(
-                        label = "Calculated SL (${result.direction.label})",
+                        label = "Stop Loss (${result.direction.label})",
                         primaryValue = result.formattedSlPrice,
                         primaryColor = if (result.direction.isBuy) TvPurpleGlow else TvLightGrey,
                         onCopy = {
@@ -259,16 +319,53 @@ fun ResultCard(
                     MetricBox(
                         label = "SL Price Distance",
                         primaryValue = result.formattedSlDistance,
-                        secondaryValue = "Points / Dollar drop",
+                        secondaryValue = "Points / Price drop",
                         modifier = Modifier.weight(1f)
                     )
 
-                    MetricBox(
-                        label = "Contract Specification",
-                        primaryValue = result.formattedContractSize,
-                        secondaryValue = "1 lot = 100 oz gold",
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (result.plannedRrRatio != null) {
+                        MetricBox(
+                            label = "Planned R:R Ratio",
+                            primaryValue = result.formattedPlannedRr,
+                            secondaryValue = "TP: ${result.formattedTpPrice}",
+                            primaryColor = TvPurpleGlow,
+                            modifier = Modifier.weight(1f)
+                        )
+                    } else {
+                        MetricBox(
+                            label = "Contract Specification",
+                            primaryValue = result.formattedContractSize,
+                            secondaryValue = "1 lot = 100 oz gold",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // Quick "Save as Trade" Action Button
+                if (onSaveAsTrade != null) {
+                    Button(
+                        onClick = onSaveAsTrade,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = TvPurplePrimary,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Save as Trade",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

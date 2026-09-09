@@ -17,7 +17,9 @@ data class CalculationResult(
     val lotStep: LotStep,
     val roundingMode: LotRoundingMode,
     val direction: TradeDirection,
-    val isBelowMinimumLot: Boolean = false
+    val isBelowMinimumLot: Boolean = false,
+    val takeProfitPrice: BigDecimal? = null,
+    val plannedRrRatio: BigDecimal? = null
 ) {
     val formattedBrokerLot: String
         get() = DecimalFormat("#,##0.00").apply {
@@ -45,4 +47,10 @@ data class CalculationResult(
 
     val formattedContractSize: String
         get() = "${contractSize.stripTrailingZeros().toPlainString()} oz / lot"
+
+    val formattedTpPrice: String
+        get() = takeProfitPrice?.let { DecimalFormat("#,##0.000").format(it.setScale(3, RoundingMode.HALF_UP)) } ?: "—"
+
+    val formattedPlannedRr: String
+        get() = plannedRrRatio?.let { "1 : ${DecimalFormat("#0.00").format(it)}" } ?: "—"
 }

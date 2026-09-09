@@ -1,13 +1,18 @@
 package com.example.xauusdlotsizecalculator.ui.calculator.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -21,10 +26,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -34,10 +42,11 @@ import com.example.xauusdlotsizecalculator.domain.model.LotStep
 import com.example.xauusdlotsizecalculator.domain.model.ValidationResult
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
-import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
+import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
+import com.example.xauusdlotsizecalculator.ui.calculator.SlInputMode
 
 @Composable
 fun CalculatorInputs(
@@ -50,6 +59,12 @@ fun CalculatorInputs(
     onEntryPriceChange: (String) -> Unit,
     slPercent: String,
     onSlPercentChange: (String) -> Unit,
+    slPrice: String,
+    onSlPriceChange: (String) -> Unit,
+    tpPrice: String,
+    onTpPriceChange: (String) -> Unit,
+    slMode: SlInputMode,
+    onSlModeChange: (SlInputMode) -> Unit,
     selectedLotStep: LotStep,
     onLotStepChange: (LotStep) -> Unit,
     validation: ValidationResult,
@@ -127,7 +142,7 @@ fun CalculatorInputs(
                 }
             }
 
-            // Section 3: Entry Price and SL Percentage
+            // Section 3: Entry Price and Stop Loss Input
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -142,17 +157,79 @@ fun CalculatorInputs(
                     modifier = Modifier.weight(1f)
                 )
 
-                TradingInputField(
-                    value = slPercent,
-                    onValueChange = onSlPercentChange,
-                    label = "SL Distance %",
-                    trailingText = "%",
-                    placeholder = "0.131",
-                    errorMessage = validation.slPercentError,
-                    onClear = { onSlPercentChange("") },
-                    modifier = Modifier.weight(1f)
-                )
+                // Stop Loss Field depending on Mode
+                Column(modifier = Modifier.weight(1f)) {
+                    if (slMode == SlInputMode.PRICE) {
+                        TradingInputField(
+                            value = slPrice,
+                            onValueChange = onSlPriceChange,
+                            label = "Stop Loss Price",
+                            placeholder = "4405.758",
+                            onClear = { onSlPriceChange("") }
+                        )
+                    } else {
+                        TradingInputField(
+                            value = slPercent,
+                            onValueChange = onSlPercentChange,
+                            label = "SL Distance %",
+                            trailingText = "%",
+                            placeholder = "0.131",
+                            errorMessage = validation.slPercentError,
+                            onClear = { onSlPercentChange("") }
+                        )
+                    }
+                }
             }
+
+            // SL Mode Selector Switch (SL Price vs SL %)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "SL Input Mode:",
+                    fontSize = 12.sp,
+                    color = TvSilver,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+                ) {
+                    Row(modifier = Modifier.padding(2.dp)) {
+                        SlInputMode.entries.forEach { mode ->
+                            val isSelected = slMode == mode
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSelected) TvPlumContainer else Color.Transparent)
+                                    .clickable { onSlModeChange(mode) }
+                                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = mode.displayName,
+                                    fontSize = 11.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = if (isSelected) TvPurpleGlow else TvSilver
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Optional Take Profit Price (Enables Planned R:R computation)
+            TradingInputField(
+                value = tpPrice,
+                onValueChange = onTpPriceChange,
+                label = "Take Profit Price (Optional • Planned R:R)",
+                placeholder = "e.g. 4425.000",
+                onClear = { onTpPriceChange("") }
+            )
 
             // Section 4: Lot Step Selection
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -212,8 +289,8 @@ private fun TradingInputField(
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,
-            label = { Text(label, fontSize = 13.sp, color = TvSilver) },
-            placeholder = { Text(placeholder, color = TvSilver.copy(alpha = 0.4f)) },
+            label = { Text(label, fontSize = 12.sp, color = TvSilver) },
+            placeholder = { Text(placeholder, color = TvSilver.copy(alpha = 0.4f), fontSize = 13.sp) },
             leadingIcon = if (leadingText != null) {
                 {
                     Text(
@@ -259,7 +336,7 @@ private fun TradingInputField(
             singleLine = true,
             textStyle = androidx.compose.ui.text.TextStyle(
                 fontFamily = FontFamily.Monospace,
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = TvSilverBright
             ),
