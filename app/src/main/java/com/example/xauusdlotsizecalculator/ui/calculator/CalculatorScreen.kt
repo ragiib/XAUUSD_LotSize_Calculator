@@ -150,7 +150,7 @@ fun CalculatorScreenContent(
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(
-                                text = "XAUUSD",
+                                text = "TRADELOG",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -158,7 +158,7 @@ fun CalculatorScreenContent(
                             )
                         }
                         Text(
-                            text = "Lot Sizer",
+                            text = "XAUUSD Calculator",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onBackground
