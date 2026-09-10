@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.xauusdlotsizecalculator.data.database.TradeRepository
 import com.example.xauusdlotsizecalculator.data.preferences.SettingsRepository
+import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.Trade
 import com.example.xauusdlotsizecalculator.domain.model.TradeStatus
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,6 +35,7 @@ data class JournalUiState(
     val resultFilter: TradeResultFilter = TradeResultFilter.ALL,
     val selectedSetupFilter: String? = null,
     val selectedMistakeFilter: String? = null,
+    val selectedAccountFilterId: Long? = null,
     val sortOption: TradeSortOption = TradeSortOption.NEWEST,
     val selectedTradeForDetail: Trade? = null,
     val selectedTradeForEdit: Trade? = null,
@@ -43,17 +45,24 @@ data class JournalUiState(
 
 class JournalViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val repository = TradeRepository(application.applicationContext)
+    private val repository = TradeRepository.getInstance(application)
     private val settingsRepo = SettingsRepository(application.applicationContext)
 
     private val _uiState = MutableStateFlow(JournalUiState())
     val uiState: StateFlow<JournalUiState> = _uiState
+
+    val accounts: StateFlow<List<Account>> = repository.accounts
 
     val filteredTrades: StateFlow<List<Trade>> = combine(
         repository.trades,
         _uiState
     ) { allTrades, state ->
         var list = allTrades
+
+        // Account Filter
+        if (state.selectedAccountFilterId != null) {
+            list = list.filter { it.accountId == state.selectedAccountFilterId }
+        }
 
         // Result Filter
         list = when (state.resultFilter) {
@@ -71,7 +80,7 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
 
         // Mistake Filter
         if (state.selectedMistakeFilter != null) {
-            list = list.filter { it.mistakes.contains(state.selectedMistakeFilter) }
+            list = list.filter { it.mistakes.any { m -> m.equals(state.selectedMistakeFilter, ignoreCase = true) } }
         }
 
         // Sort
@@ -82,6 +91,10 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
             TradeSortOption.LARGEST_LOSS -> list.sortedBy { it.profitLoss ?: Double.POSITIVE_INFINITY }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun onAccountFilterSelected(accountId: Long?) {
+        _uiState.update { it.copy(selectedAccountFilterId = accountId) }
+    }
 
     fun onResultFilterSelected(filter: TradeResultFilter) {
         _uiState.update { it.copy(resultFilter = filter) }
@@ -121,29 +134,12 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
 
     fun onSaveTrade(trade: Trade) {
         viewModelScope.launch {
-            val discipline = settingsRepo.getDisciplineSettings()
             if (trade.id == 0L) {
                 repository.saveTrade(trade)
                 _uiState.update { it.copy(snackbarMessage = "Trade logged successfully") }
-
-                // Auto-sync balance if closed trade with P/L
-                if (trade.isClosed && trade.profitLoss != null && discipline.autoSyncBalance) {
-                    val currentBalance = settingsRepo.getCurrentBalance()
-                    settingsRepo.saveCurrentBalance(currentBalance + trade.profitLoss)
-                }
             } else {
-                val oldTrade = repository.getTrade(trade.id)
-                val oldPnl = if (oldTrade?.isClosed == true) oldTrade.profitLoss ?: 0.0 else 0.0
-                val newPnl = if (trade.isClosed) trade.profitLoss ?: 0.0 else 0.0
-                val delta = newPnl - oldPnl
-
                 repository.updateTrade(trade)
                 _uiState.update { it.copy(snackbarMessage = "Trade updated") }
-
-                if (delta != 0.0 && discipline.autoSyncBalance) {
-                    val currentBalance = settingsRepo.getCurrentBalance()
-                    settingsRepo.saveCurrentBalance(currentBalance + delta)
-                }
             }
             onDismissAddEditSheet()
         }
@@ -151,11 +147,6 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
 
     fun onDeleteTrade(trade: Trade) {
         viewModelScope.launch {
-            val discipline = settingsRepo.getDisciplineSettings()
-            if (trade.isClosed && trade.profitLoss != null && discipline.autoSyncBalance) {
-                val currentBalance = settingsRepo.getCurrentBalance()
-                settingsRepo.saveCurrentBalance(currentBalance - trade.profitLoss)
-            }
             repository.deleteTrade(trade.id)
             _uiState.update { it.copy(selectedTradeForDetail = null, snackbarMessage = "Trade deleted") }
         }

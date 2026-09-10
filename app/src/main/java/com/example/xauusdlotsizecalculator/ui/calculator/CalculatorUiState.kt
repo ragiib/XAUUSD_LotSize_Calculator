@@ -1,5 +1,6 @@
 package com.example.xauusdlotsizecalculator.ui.calculator
 
+import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.CalculationResult
 import com.example.xauusdlotsizecalculator.domain.model.CalculatorSettings
 import com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode
@@ -15,12 +16,15 @@ enum class SlInputMode(val displayName: String) {
 }
 
 data class CalculatorUiState(
-    val balanceInput: String = "2500",
+    val pairInput: String = "XAUUSD",
+    val selectedAccountId: Long = 1L,
+    val availableAccounts: List<Account> = emptyList(),
+    val balanceInput: String = "5000",
     val riskPercentInput: String = "1",
-    val entryPriceInput: String = "4411.537",
-    val slPercentInput: String = "0.131",
-    val slPriceInput: String = "4405.758",
-    val tpPriceInput: String = "",
+    val entryPriceInput: String = "2650.00",
+    val slPercentInput: String = "0.189",
+    val slPriceInput: String = "2645.00",
+    val tpPriceInput: String = "2662.50",
     val slMode: SlInputMode = SlInputMode.PRICE,
     val direction: TradeDirection = TradeDirection.BUY,
     val lotStep: LotStep = LotStep.STEP_0_01,

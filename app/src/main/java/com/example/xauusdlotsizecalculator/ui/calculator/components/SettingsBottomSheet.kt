@@ -1,6 +1,7 @@
 package com.example.xauusdlotsizecalculator.ui.calculator.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,14 +10,20 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -29,8 +36,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -47,6 +54,17 @@ fun SettingsBottomSheet(
     onSave: (CalculatorSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
+    val presets = listOf(1000.0, 2500.0, 5000.0, 10000.0, 25000.0)
+    var isCustomSize by remember {
+        mutableStateOf(!presets.contains(currentSettings.defaultAccountSize))
+    }
+    var selectedPresetSize by remember {
+        mutableStateOf(if (presets.contains(currentSettings.defaultAccountSize)) currentSettings.defaultAccountSize else 5000.0)
+    }
+    var customAccountSizeInput by remember {
+        mutableStateOf(currentSettings.defaultAccountSize.toInt().toString())
+    }
+
     var riskInput by remember { mutableStateOf(currentSettings.defaultRiskPercent.toString().removeSuffix(".0")) }
     var selectedLotStep by remember { mutableStateOf(currentSettings.defaultLotStep) }
     var contractSizeInput by remember { mutableStateOf(currentSettings.contractSize.toString().removeSuffix(".0")) }
@@ -65,12 +83,113 @@ fun SettingsBottomSheet(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Calculator Settings",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            // Header with Back Button
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Calculator Settings",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Default Account Size Chooser
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "Default Account Size",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Initial balance loaded into calculator. Does not alter actual account balances.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    presets.forEach { preset ->
+                        val isSelected = !isCustomSize && selectedPresetSize == preset
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                isCustomSize = false
+                                selectedPresetSize = preset
+                                customAccountSizeInput = preset.toInt().toString()
+                            },
+                            label = {
+                                Text(
+                                    text = "$${preset.toInt()}",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            border = null
+                        )
+                    }
+
+                    // Custom Option
+                    FilterChip(
+                        selected = isCustomSize,
+                        onClick = { isCustomSize = true },
+                        label = {
+                            Text(
+                                text = "Custom",
+                                fontSize = 12.sp,
+                                fontWeight = if (isCustomSize) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary,
+                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = null
+                    )
+                }
+
+                if (isCustomSize) {
+                    OutlinedTextField(
+                        value = customAccountSizeInput,
+                        onValueChange = { customAccountSizeInput = it },
+                        label = { Text("Custom Account Size") },
+                        leadingIcon = { Text("$", fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 12.dp)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
 
             // Default Risk Percentage
             OutlinedTextField(
@@ -194,11 +313,17 @@ fun SettingsBottomSheet(
                     onClick = {
                         val riskVal = riskInput.toDoubleOrNull() ?: 1.0
                         val contractSizeVal = contractSizeInput.toDoubleOrNull() ?: 100.0
+                        val finalAccountSize = if (isCustomSize) {
+                            customAccountSizeInput.toDoubleOrNull() ?: 5000.0
+                        } else {
+                            selectedPresetSize
+                        }
                         val newSettings = CalculatorSettings(
                             defaultRiskPercent = riskVal,
                             defaultLotStep = selectedLotStep,
                             contractSize = contractSizeVal,
-                            roundingMode = selectedRoundingMode
+                            roundingMode = selectedRoundingMode,
+                            defaultAccountSize = finalAccountSize
                         )
                         onSave(newSettings)
                     },

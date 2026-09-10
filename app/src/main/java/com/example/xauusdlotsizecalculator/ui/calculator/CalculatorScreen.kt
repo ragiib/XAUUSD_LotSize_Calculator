@@ -72,6 +72,8 @@ fun CalculatorScreen(
 
     CalculatorScreenContent(
         uiState = uiState,
+        onPairChange = { viewModel.onPairChange(it) },
+        onSelectAccount = { viewModel.onSelectAccount(it) },
         onBalanceChange = { viewModel.onBalanceChange(it) },
         onRiskPercentChange = { viewModel.onRiskPercentChange(it) },
         onPresetRiskSelected = { viewModel.onPresetRiskSelected(it) },
@@ -104,6 +106,8 @@ fun CalculatorScreen(
 @Composable
 fun CalculatorScreenContent(
     uiState: CalculatorUiState,
+    onPairChange: (String) -> Unit = {},
+    onSelectAccount: (Long) -> Unit = {},
     onBalanceChange: (String) -> Unit,
     onRiskPercentChange: (String) -> Unit,
     onPresetRiskSelected: (Double) -> Unit,
@@ -206,6 +210,11 @@ fun CalculatorScreenContent(
 
             // Primary Inputs Card
             CalculatorInputs(
+                pair = uiState.pairInput,
+                onPairChange = onPairChange,
+                availableAccounts = uiState.availableAccounts,
+                selectedAccountId = uiState.selectedAccountId,
+                onSelectAccount = onSelectAccount,
                 balance = uiState.balanceInput,
                 onBalanceChange = onBalanceChange,
                 riskPercent = uiState.riskPercentInput,

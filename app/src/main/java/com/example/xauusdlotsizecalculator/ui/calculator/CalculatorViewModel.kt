@@ -2,13 +2,17 @@ package com.example.xauusdlotsizecalculator.ui.calculator
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.xauusdlotsizecalculator.data.database.TradeRepository
 import com.example.xauusdlotsizecalculator.data.preferences.SettingsRepository
 import com.example.xauusdlotsizecalculator.domain.calculator.XauusdLotCalculator
+import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.CalculationInput
 import com.example.xauusdlotsizecalculator.domain.model.CalculationResult
 import com.example.xauusdlotsizecalculator.domain.model.CalculatorSettings
 import com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode
 import com.example.xauusdlotsizecalculator.domain.model.LotStep
+import com.example.xauusdlotsizecalculator.domain.model.PropFirmSettings
 import com.example.xauusdlotsizecalculator.domain.model.Trade
 import com.example.xauusdlotsizecalculator.domain.model.TradeDirection
 import com.example.xauusdlotsizecalculator.domain.model.TradeStatus
@@ -17,36 +21,90 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.DecimalFormat
 
 class CalculatorViewModel(application: Application) : AndroidViewModel(application) {
 
+    private val repository = TradeRepository.getInstance(application)
     private val settingsRepo = SettingsRepository(application.applicationContext)
     private val _uiState = MutableStateFlow(CalculatorUiState())
     val uiState: StateFlow<CalculatorUiState> = _uiState.asStateFlow()
 
     init {
         loadSettings()
+        observeAccounts()
         calculateIfValid()
     }
 
     private fun loadSettings() {
         val savedSettings = settingsRepo.getSettings()
-        val propSettings = settingsRepo.getPropFirmSettings()
-        val accountBalance = settingsRepo.getCurrentBalance()
         _uiState.update { current ->
             current.copy(
-                balanceInput = if (accountBalance > 0) accountBalance.toInt().toString() else current.balanceInput,
+                balanceInput = savedSettings.defaultAccountSize.toInt().toString(),
                 riskPercentInput = savedSettings.defaultRiskPercent.toString().removeSuffix(".0"),
                 lotStep = savedSettings.defaultLotStep,
                 roundingMode = savedSettings.roundingMode,
                 contractSize = BigDecimal(savedSettings.contractSize.toString()),
-                settings = savedSettings,
-                propFirmSettings = propSettings
+                settings = savedSettings
             )
         }
+    }
+
+    private fun observeAccounts() {
+        viewModelScope.launch {
+            repository.accounts.collect { accounts ->
+                if (accounts.isNotEmpty()) {
+                    val currentSelectedId = _uiState.value.selectedAccountId
+                    val selectedAcc = accounts.firstOrNull { it.id == currentSelectedId } ?: accounts.first()
+                    
+                    val prop = PropFirmSettings(
+                        enabled = selectedAcc.isPropFirm,
+                        name = selectedAcc.name,
+                        startingBalance = selectedAcc.startingBalance,
+                        profitTargetPercent = selectedAcc.profitTargetPercent,
+                        maxLossPercent = selectedAcc.maxLossPercent,
+                        dailyLossPercent = selectedAcc.dailyLossPercent,
+                        maxGoldVolumeLots = selectedAcc.maxGoldLots,
+                        leverage = selectedAcc.leverage
+                    )
+
+                    _uiState.update { it.copy(
+                        availableAccounts = accounts,
+                        selectedAccountId = selectedAcc.id,
+                        propFirmSettings = prop
+                    )}
+                    calculateIfValid()
+                }
+            }
+        }
+    }
+
+    fun onSelectAccount(accountId: Long) {
+        val accounts = _uiState.value.availableAccounts
+        val acc = accounts.firstOrNull { it.id == accountId } ?: return
+        val prop = PropFirmSettings(
+            enabled = acc.isPropFirm,
+            name = acc.name,
+            startingBalance = acc.startingBalance,
+            profitTargetPercent = acc.profitTargetPercent,
+            maxLossPercent = acc.maxLossPercent,
+            dailyLossPercent = acc.dailyLossPercent,
+            maxGoldVolumeLots = acc.maxGoldLots,
+            leverage = acc.leverage
+        )
+        _uiState.update { it.copy(
+            selectedAccountId = accountId,
+            propFirmSettings = prop
+        )}
+        calculateIfValid()
+    }
+
+    fun onPairChange(pair: String) {
+        _uiState.update { it.copy(pairInput = pair) }
+        calculateIfValid()
     }
 
     fun onBalanceChange(value: String) {
@@ -61,7 +119,6 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun onEntryPriceChange(value: String) {
         _uiState.update { it.copy(entryPriceInput = value) }
-        // If in percent mode, keep slPrice updated; if in price mode, keep slPrice as user typed
         syncSlInputsOnEntryChange(value)
         calculateIfValid()
     }
@@ -102,7 +159,6 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun onDirectionChange(direction: TradeDirection) {
         _uiState.update { it.copy(direction = direction) }
-        // Recompute SL price based on new direction if using percent mode
         val entry = XauusdLotCalculator.parseDecimal(_uiState.value.entryPriceInput)
         val slPct = XauusdLotCalculator.parseDecimal(_uiState.value.slPercentInput)
         if (entry != null && slPct != null && entry > BigDecimal.ZERO) {
@@ -194,11 +250,11 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
             )
             val result = XauusdLotCalculator.calculate(input)
 
-            // Evaluate PropScholar Risk Guard
+            // Evaluate Prop Firm Risk Guard for the currently selected account
             val prop = state.propFirmSettings
             val isLimitExceeded = prop.enabled && result.brokerLotSize.toDouble() > prop.maxGoldVolumeLots
             val warningMsg = if (isLimitExceeded) {
-                "Maximum simultaneous Gold volume:\n${DecimalFormat("0.00").format(prop.maxGoldVolumeLots)} lots"
+                "${prop.name} Max Gold Volume:\n${DecimalFormat("0.00").format(prop.maxGoldVolumeLots)} lots"
             } else null
 
             val riskAtLimitText = if (isLimitExceeded) {
@@ -232,11 +288,13 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
         val result = state.result ?: return null
         val entry = XauusdLotCalculator.parseDecimal(state.entryPriceInput)?.toDouble() ?: return null
         val riskPct = XauusdLotCalculator.parseDecimal(state.riskPercentInput)?.toDouble() ?: 1.0
+        val pair = state.pairInput.trim().ifBlank { "XAUUSD" }.uppercase()
 
         return Trade(
             id = 0,
+            accountId = state.selectedAccountId,
             dateEpochMs = System.currentTimeMillis(),
-            symbol = "XAUUSD",
+            symbol = pair,
             direction = state.direction,
             entryPrice = entry,
             stopLossPrice = result.slPrice.toDouble(),
@@ -253,13 +311,19 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     fun onResetClick() {
         val currentSettings = _uiState.value.settings
         val prop = _uiState.value.propFirmSettings
+        val accounts = _uiState.value.availableAccounts
+        val selectedId = _uiState.value.selectedAccountId
+
         _uiState.update {
             CalculatorUiState(
-                balanceInput = "2500",
+                pairInput = "XAUUSD",
+                selectedAccountId = selectedId,
+                availableAccounts = accounts,
+                balanceInput = currentSettings.defaultAccountSize.toInt().toString(),
                 riskPercentInput = currentSettings.defaultRiskPercent.toString().removeSuffix(".0"),
-                entryPriceInput = "4411.537",
-                slPercentInput = "0.131",
-                slPriceInput = "4405.758",
+                entryPriceInput = "2650.00",
+                slPercentInput = "0.189",
+                slPriceInput = "2645.00",
                 direction = TradeDirection.BUY,
                 lotStep = currentSettings.defaultLotStep,
                 roundingMode = currentSettings.roundingMode,
@@ -292,7 +356,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
                 roundingMode = settings.roundingMode,
                 contractSize = BigDecimal(settings.contractSize.toString()),
                 showSettingsSheet = false,
-                snackbarMessage = "Settings saved"
+                snackbarMessage = "Calculator settings saved"
             )
         }
         calculateIfValid()

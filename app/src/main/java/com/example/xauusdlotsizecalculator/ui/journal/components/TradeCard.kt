@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -50,9 +52,11 @@ import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import java.text.DecimalFormat
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TradeCard(
     trade: Trade,
+    accountName: String? = null,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -86,18 +90,21 @@ fun TradeCard(
                 .padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Row 1: Direction & Symbol Tag, Setup Tag, and Date/Time
+            // Row 1: Direction & Symbol Tag, Account Pill (if available), and Date/Time
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Direction Badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    // Direction & Symbol Badge
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = if (trade.direction == TradeDirection.BUY) TvBuyColor else TvSilver.copy(alpha = 0.2f),
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 6.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -119,21 +126,26 @@ fun TradeCard(
                         }
                     }
 
-                    // Setup tag
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
-                    ) {
-                        Text(
-                            text = trade.setup,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TvSilverBright,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                    // Account Tag (if available)
+                    if (!accountName.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = TvPlumContainer,
+                            border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+                        ) {
+                            Text(
+                                text = accountName,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TvPurpleGlow,
+                                maxLines = 1,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
+
+                Spacer(modifier = Modifier.width(8.dp))
 
                 // Date & Time
                 Text(
@@ -143,13 +155,13 @@ fun TradeCard(
                 )
             }
 
-            // Row 2: Lot Size & Price levels (Entry -> SL) vs P/L and R Multiple
+            // Row 2: Lot Size & Price levels (Entry -> SL -> TP) vs P/L and R Multiple
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "${DecimalFormat("#,##0.00").format(trade.lotSize)} lots",
@@ -222,12 +234,28 @@ fun TradeCard(
                 }
             }
 
-            // Row 3: Quality Stars & Mistakes Tag (if any)
+            // Row 3: Setup Badge & Setup Quality
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Setup tag
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+                ) {
+                    Text(
+                        text = trade.setup,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = TvSilverBright,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+
+                // Setup Quality Stars & Label
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = trade.setupQuality.stars,
@@ -242,29 +270,38 @@ fun TradeCard(
                         color = TvSilverBright
                     )
                 }
+            }
 
-                if (trade.hasMistake) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = TvRedContainer,
-                        border = BorderStroke(1.dp, TvRedContainerBorder)
-                    ) {
-                        Text(
-                            text = trade.mistakes.filter { it != "No mistake" }.joinToString(", "),
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = TvRedLoss,
-                            maxLines = 1,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+            // Row 4: Mistakes List (Responsive wrapping with FlowRow to eliminate ANY collision/overlap)
+            val actualMistakes = trade.mistakes.filter { !it.equals("No Mistake", ignoreCase = true) }
+            if (actualMistakes.isNotEmpty()) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    actualMistakes.forEach { mistake ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = TvRedContainer,
+                            border = BorderStroke(1.dp, TvRedContainerBorder)
+                        ) {
+                            Text(
+                                text = mistake,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = TvRedLoss,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
-                } else if (trade.isClosed) {
-                    Text(
-                        text = "Clean execution",
-                        fontSize = 10.sp,
-                        color = TvSilver.copy(alpha = 0.6f)
-                    )
                 }
+            } else if (trade.isClosed) {
+                Text(
+                    text = "Clean execution",
+                    fontSize = 10.sp,
+                    color = TvSilver.copy(alpha = 0.6f)
+                )
             }
         }
     }
@@ -277,6 +314,7 @@ fun TradeCardWinnerPreview() {
         TradeCard(
             trade = Trade(
                 id = 1,
+                accountId = 1,
                 dateEpochMs = System.currentTimeMillis(),
                 symbol = "XAUUSD",
                 direction = TradeDirection.BUY,
@@ -295,6 +333,7 @@ fun TradeCardWinnerPreview() {
                 emotionBefore = "Calm",
                 emotionAfter = "Confident"
             ),
+            accountName = "PropScholar Freedom 5K",
             onClick = {}
         )
     }

@@ -64,6 +64,17 @@ import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import java.text.DecimalFormat
 
+import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import com.example.xauusdlotsizecalculator.domain.model.Account
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
@@ -71,9 +82,14 @@ fun AnalyticsScreen(
     modifier: Modifier = Modifier
 ) {
     val summary by viewModel.analyticsSummary.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
+    val selectedAccountId by viewModel.selectedAccountId.collectAsStateWithLifecycle()
 
     AnalyticsScreenContent(
         summary = summary,
+        accounts = accounts,
+        selectedAccountId = selectedAccountId,
+        onSelectAccountFilter = { viewModel.onSelectAccountFilter(it) },
         modifier = modifier
     )
 }
@@ -82,8 +98,18 @@ fun AnalyticsScreen(
 @Composable
 fun AnalyticsScreenContent(
     summary: com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary,
+    accounts: List<Account> = emptyList(),
+    selectedAccountId: Long? = null,
+    onSelectAccountFilter: (Long?) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var accountDropdownExpanded by remember { mutableStateOf(false) }
+    val selectedAccountName = if (selectedAccountId != null) {
+        accounts.firstOrNull { it.id == selectedAccountId }?.name ?: "Selected Account"
+    } else {
+        "All Accounts"
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -129,6 +155,88 @@ fun AnalyticsScreenContent(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // Account Filter Chooser
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .clickable { accountDropdownExpanded = true },
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.6f)),
+                    shape = RoundedCornerShape(14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalance,
+                                contentDescription = null,
+                                tint = TvPurpleGlow,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "ACCOUNT FILTER",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TvSilver
+                                )
+                                Text(
+                                    text = selectedAccountName,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TvSilverBright
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = TvSilver
+                        )
+                    }
+                }
+
+                DropdownMenu(
+                    expanded = accountDropdownExpanded,
+                    onDismissRequest = { accountDropdownExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "All Accounts",
+                                fontWeight = if (selectedAccountId == null) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
+                        onClick = {
+                            onSelectAccountFilter(null)
+                            accountDropdownExpanded = false
+                        }
+                    )
+                    accounts.forEach { acc ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    text = acc.name,
+                                    fontWeight = if (selectedAccountId == acc.id) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            onClick = {
+                                onSelectAccountFilter(acc.id)
+                                accountDropdownExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+
             // Section 1: Daily Performance (Today)
             DailyPerformanceCard(summary = summary)
 

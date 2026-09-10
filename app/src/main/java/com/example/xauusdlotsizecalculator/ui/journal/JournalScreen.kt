@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -54,6 +55,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.DEFAULT_SETUPS
 import com.example.xauusdlotsizecalculator.domain.model.SetupQuality
 import com.example.xauusdlotsizecalculator.domain.model.Trade
@@ -77,10 +79,13 @@ fun JournalScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val trades by viewModel.filteredTrades.collectAsStateWithLifecycle()
+    val accounts by viewModel.accounts.collectAsStateWithLifecycle()
 
     JournalScreenContent(
         uiState = uiState,
         trades = trades,
+        accounts = accounts,
+        onAccountFilterSelected = { viewModel.onAccountFilterSelected(it) },
         onResultFilterSelected = { viewModel.onResultFilterSelected(it) },
         onSetupFilterSelected = { viewModel.onSetupFilterSelected(it) },
         onSortOptionSelected = { viewModel.onSortOptionSelected(it) },
@@ -102,6 +107,8 @@ fun JournalScreen(
 fun JournalScreenContent(
     uiState: JournalUiState,
     trades: List<Trade>,
+    accounts: List<Account> = emptyList(),
+    onAccountFilterSelected: (Long?) -> Unit = {},
     onResultFilterSelected: (TradeResultFilter) -> Unit,
     onSetupFilterSelected: (String?) -> Unit,
     onSortOptionSelected: (TradeSortOption) -> Unit,
@@ -122,12 +129,19 @@ fun JournalScreenContent(
 
     var showSortMenu by remember { mutableStateOf(false) }
     var showSetupMenu by remember { mutableStateOf(false) }
+    var showAccountMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
             onSnackbarDismissed()
         }
+    }
+
+    val selectedAccountName = if (uiState.selectedAccountFilterId != null) {
+        accounts.firstOrNull { it.id == uiState.selectedAccountFilterId }?.name ?: "Selected Account"
+    } else {
+        "All Accounts"
     }
 
     Scaffold(
@@ -160,6 +174,50 @@ fun JournalScreenContent(
                     }
                 },
                 actions = {
+                    // Account Filter Menu Button
+                    if (accounts.size > 1) {
+                        Box {
+                            IconButton(onClick = { showAccountMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalance,
+                                    contentDescription = "Filter by Account",
+                                    tint = if (uiState.selectedAccountFilterId != null) TvPurpleGlow else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showAccountMenu,
+                                onDismissRequest = { showAccountMenu = false }
+                            ) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = "All Accounts",
+                                            fontWeight = if (uiState.selectedAccountFilterId == null) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                    },
+                                    onClick = {
+                                        onAccountFilterSelected(null)
+                                        showAccountMenu = false
+                                    }
+                                )
+                                accounts.forEach { acc ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = acc.name,
+                                                fontWeight = if (uiState.selectedAccountFilterId == acc.id) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        onClick = {
+                                            onAccountFilterSelected(acc.id)
+                                            showAccountMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
                     // Sort Menu Button
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
@@ -241,14 +299,30 @@ fun JournalScreenContent(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Horizontal Filter Chips: All, Wins, Losses, Breakeven, Open
+            // Horizontal Filter Chips: All, Wins, Losses, Breakeven, Open, plus active Account filter tag
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                if (uiState.selectedAccountFilterId != null) {
+                    FilterChip(
+                        selected = true,
+                        onClick = { onAccountFilterSelected(null) },
+                        label = { Text("$selectedAccountName ✕", fontSize = 12.sp) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = TvPlumContainer,
+                            selectedLabelColor = TvPurpleGlow
+                        ),
+                        border = BorderStroke(1.dp, TvPurplePrimary),
+                        modifier = Modifier.height(32.dp)
+                    )
+                }
+
                 TradeResultFilter.entries.forEach { f ->
                     val isSelected = uiState.resultFilter == f
                     FilterChip(
@@ -282,12 +356,12 @@ fun JournalScreenContent(
                 }
             }
 
-            // Trade Cards List
+            // Trades List
             if (trades.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(horizontal = 32.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(
@@ -296,7 +370,8 @@ fun JournalScreenContent(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = TvPlumContainer,
+                            border = BorderStroke(1.dp, TvDarkSurfaceBorder),
                             modifier = Modifier.size(64.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -332,8 +407,10 @@ fun JournalScreenContent(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(trades, key = { it.id }) { trade ->
+                        val accountName = accounts.firstOrNull { it.id == trade.accountId }?.name
                         TradeCard(
                             trade = trade,
+                            accountName = accountName,
                             onClick = { onTradeClicked(trade) }
                         )
                     }
@@ -343,8 +420,10 @@ fun JournalScreenContent(
 
         // Details Bottom Sheet
         if (uiState.selectedTradeForDetail != null) {
+            val detailAccountName = accounts.firstOrNull { it.id == uiState.selectedTradeForDetail?.accountId }?.name
             TradeDetailBottomSheet(
                 trade = uiState.selectedTradeForDetail!!,
+                accountName = detailAccountName,
                 sheetState = detailSheetState,
                 onDismiss = onDismissDetailSheet,
                 onEdit = onEditTradeClicked,
@@ -357,6 +436,7 @@ fun JournalScreenContent(
         if (uiState.isAddSheetOpen) {
             AddEditTradeSheet(
                 trade = uiState.selectedTradeForEdit,
+                availableAccounts = accounts,
                 sheetState = addSheetState,
                 onSave = onSaveTrade,
                 onDismiss = onDismissAddEditSheet
@@ -371,12 +451,13 @@ fun JournalScreenPreview() {
     val sampleTrades = listOf(
         Trade(
             id = 1,
+            accountId = 1,
             symbol = "XAUUSD",
             direction = TradeDirection.BUY,
             entryPrice = 2650.00,
-            exitPrice = 2665.00,
             stopLossPrice = 2642.50,
             takeProfitPrice = 2670.00,
+            exitPrice = 2665.00,
             lotSize = 0.15,
             plannedRiskAmount = 112.50,
             plannedRiskPercent = 2.0,
@@ -388,10 +469,11 @@ fun JournalScreenPreview() {
             rMultiple = 2.00,
             setup = "Liquidity Sweep",
             setupQuality = SetupQuality.A_PLUS,
-            mistakes = listOf("No mistake")
+            mistakes = listOf("No Mistake")
         ),
         Trade(
             id = 2,
+            accountId = 1,
             symbol = "XAUUSD",
             direction = TradeDirection.SELL,
             entryPrice = 2660.00,
@@ -407,23 +489,7 @@ fun JournalScreenPreview() {
             rMultiple = -1.00,
             setup = "Fair Value Gap",
             setupQuality = SetupQuality.GOOD,
-            mistakes = listOf("FOMO", "Entered too early")
-        ),
-        Trade(
-            id = 3,
-            symbol = "XAUUSD",
-            direction = TradeDirection.BUY,
-            entryPrice = 2655.00,
-            stopLossPrice = 2650.00,
-            takeProfitPrice = 2667.50,
-            lotSize = 0.08,
-            plannedRiskAmount = 40.00,
-            plannedRiskPercent = 0.8,
-            slDistance = 5.00,
-            plannedRrRatio = 2.50,
-            status = TradeStatus.OPEN,
-            setup = "Break & Retest",
-            setupQuality = SetupQuality.A_PLUS
+            mistakes = listOf("FOMO", "Entered Too Early", "Tight SL")
         )
     )
 
@@ -431,29 +497,6 @@ fun JournalScreenPreview() {
         JournalScreenContent(
             uiState = JournalUiState(),
             trades = sampleTrades,
-            onResultFilterSelected = {},
-            onSetupFilterSelected = {},
-            onSortOptionSelected = {},
-            onTradeClicked = {},
-            onOpenAddSheet = {},
-            onDismissDetailSheet = {},
-            onDismissAddEditSheet = {},
-            onSaveTrade = {},
-            onEditTradeClicked = {},
-            onDuplicateTrade = {},
-            onDeleteTrade = {},
-            onSnackbarDismissed = {}
-        )
-    }
-}
-
-@Preview(name = "Trade Journal - Empty State", showBackground = true)
-@Composable
-fun JournalScreenEmptyPreview() {
-    XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
-        JournalScreenContent(
-            uiState = JournalUiState(),
-            trades = emptyList(),
             onResultFilterSelected = {},
             onSetupFilterSelected = {},
             onSortOptionSelected = {},

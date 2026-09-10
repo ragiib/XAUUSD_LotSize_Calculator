@@ -18,6 +18,7 @@ class SettingsRepository(context: Context) {
         val lotStepStr = prefs.getString(KEY_DEFAULT_LOT_STEP, LotStep.STEP_0_01.name) ?: LotStep.STEP_0_01.name
         val contractSize = prefs.getFloat(KEY_CONTRACT_SIZE, 100.0f).toDouble()
         val roundingModeStr = prefs.getString(KEY_ROUNDING_MODE, LotRoundingMode.ROUND_DOWN.name) ?: LotRoundingMode.ROUND_DOWN.name
+        val accountSize = prefs.getFloat(KEY_DEFAULT_ACCOUNT_SIZE, 5000.0f).toDouble()
 
         val lotStep = try {
             LotStep.valueOf(lotStepStr)
@@ -35,7 +36,8 @@ class SettingsRepository(context: Context) {
             defaultRiskPercent = riskPercent,
             defaultLotStep = lotStep,
             contractSize = contractSize,
-            roundingMode = roundingMode
+            roundingMode = roundingMode,
+            defaultAccountSize = accountSize
         )
     }
 
@@ -45,6 +47,7 @@ class SettingsRepository(context: Context) {
             .putString(KEY_DEFAULT_LOT_STEP, settings.defaultLotStep.name)
             .putFloat(KEY_CONTRACT_SIZE, settings.contractSize.toFloat())
             .putString(KEY_ROUNDING_MODE, settings.roundingMode.name)
+            .putFloat(KEY_DEFAULT_ACCOUNT_SIZE, settings.defaultAccountSize.toFloat())
             .apply()
     }
 
@@ -124,6 +127,7 @@ class SettingsRepository(context: Context) {
         private const val PREFS_NAME = "xauusd_calculator_settings"
         private const val KEY_DEFAULT_RISK = "default_risk_percent"
         private const val KEY_DEFAULT_LOT_STEP = "default_lot_step"
+        private const val KEY_DEFAULT_ACCOUNT_SIZE = "default_account_size"
         private const val KEY_CONTRACT_SIZE = "contract_size"
         private const val KEY_ROUNDING_MODE = "rounding_mode"
 

@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,13 +24,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -44,6 +51,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +60,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xauusdlotsizecalculator.domain.calculator.XauusdLotCalculator
+import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.DEFAULT_EMOTIONS
 import com.example.xauusdlotsizecalculator.domain.model.DEFAULT_MISTAKES
 import com.example.xauusdlotsizecalculator.domain.model.DEFAULT_SETUPS
@@ -67,6 +76,7 @@ import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvRedLoss
 import com.example.xauusdlotsizecalculator.theme.TvSilver
+import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme
 import java.io.File
 import java.io.FileOutputStream
@@ -76,6 +86,7 @@ import java.text.DecimalFormat
 @Composable
 fun AddEditTradeSheet(
     trade: Trade?,
+    availableAccounts: List<Account> = emptyList(),
     sheetState: SheetState,
     onSave: (Trade) -> Unit,
     onDismiss: () -> Unit
@@ -88,6 +99,7 @@ fun AddEditTradeSheet(
     ) {
         AddEditTradeFormContent(
             trade = trade,
+            availableAccounts = availableAccounts,
             onSave = onSave,
             onDismiss = onDismiss
         )
@@ -98,12 +110,18 @@ fun AddEditTradeSheet(
 @Composable
 fun AddEditTradeFormContent(
     trade: Trade?,
+    availableAccounts: List<Account> = emptyList(),
     onSave: (Trade) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val isEdit = trade != null && trade.id != 0L
+
+    var selectedAccountId by remember {
+        mutableStateOf(trade?.accountId ?: availableAccounts.firstOrNull()?.id ?: 1L)
+    }
+    var accountDropdownExpanded by remember { mutableStateOf(false) }
 
     var symbol by remember { mutableStateOf(trade?.symbol ?: "XAUUSD") }
     var direction by remember { mutableStateOf(trade?.direction ?: TradeDirection.BUY) }
@@ -121,7 +139,12 @@ fun AddEditTradeFormContent(
     var customSetup by remember { mutableStateOf("") }
     var quality by remember { mutableStateOf(trade?.setupQuality ?: SetupQuality.A_PLUS) }
 
-    var selectedMistakes by remember { mutableStateOf(trade?.mistakes?.toSet() ?: setOf("No mistake")) }
+    var selectedMistakes by remember {
+        mutableStateOf(
+            if (trade?.mistakes.isNullOrEmpty()) setOf("No Mistake")
+            else trade!!.mistakes.toSet()
+        )
+    }
     var emotionBefore by remember { mutableStateOf(trade?.emotionBefore ?: "Calm") }
     var emotionAfter by remember { mutableStateOf(trade?.emotionAfter ?: "Calm") }
     var thinkingNotes by remember { mutableStateOf(trade?.thinkingNotes ?: "") }
@@ -181,12 +204,140 @@ fun AddEditTradeFormContent(
             .navigationBarsPadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = if (isEdit) "Edit Journal Trade" else "Log New Trade",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+        // Visible Back Button in Top App Bar
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onDismiss) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = if (isEdit) "Edit Journal Trade" else "Log New Trade",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        // Account Selector
+        if (availableAccounts.isNotEmpty()) {
+            val currentAccount = availableAccounts.firstOrNull { it.id == selectedAccountId } ?: availableAccounts.first()
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "ACCOUNT",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TvSilver
+                )
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { accountDropdownExpanded = true },
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.6f)),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalance,
+                                    contentDescription = null,
+                                    tint = TvPurpleGlow,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = currentAccount.name,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = TvSilverBright
+                                )
+                            }
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = TvSilver
+                            )
+                        }
+                    }
+
+                    DropdownMenu(
+                        expanded = accountDropdownExpanded,
+                        onDismissRequest = { accountDropdownExpanded = false }
+                    ) {
+                        availableAccounts.forEach { acc ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Text(
+                                            text = acc.name,
+                                            fontWeight = if (acc.id == selectedAccountId) FontWeight.Bold else FontWeight.Normal
+                                        )
+                                        Text(
+                                            text = "Balance: ${acc.currency}${DecimalFormat("#,##0.00").format(acc.currentBalance)}",
+                                            fontSize = 11.sp,
+                                            color = TvSilver
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    selectedAccountId = acc.id
+                                    accountDropdownExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // Pair / Symbol Input with Quick Suggestion Chips
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedTextField(
+                value = symbol,
+                onValueChange = { symbol = it.uppercase() },
+                label = { Text("Pair / Symbol") },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf("XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "BTCUSD").forEach { p ->
+                    val isSelected = symbol.equals(p, ignoreCase = true)
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { symbol = p },
+                        label = { Text(p, fontSize = 11.sp) },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = TvPlumContainer,
+                            selectedLabelColor = TvPurpleGlow
+                        ),
+                        border = if (isSelected) BorderStroke(1.dp, TvPurplePrimary) else null
+                    )
+                }
+            }
+        }
 
         // Direction Selector: BUY / SELL
         Row(
@@ -274,7 +425,7 @@ fun AddEditTradeFormContent(
             )
         }
 
-        // Lot Size & Risk Amount
+        // Lot Size & Risk $
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -283,7 +434,6 @@ fun AddEditTradeFormContent(
                 value = lotSizeStr,
                 onValueChange = { lotSizeStr = it },
                 label = { Text("Lot Size") },
-                trailingIcon = { Text("lots", fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -293,8 +443,7 @@ fun AddEditTradeFormContent(
             OutlinedTextField(
                 value = riskAmountStr,
                 onValueChange = { riskAmountStr = it },
-                label = { Text("Planned Risk") },
-                leadingIcon = { Text("$", fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp)) },
+                label = { Text("Risk Amount ($)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
@@ -302,12 +451,12 @@ fun AddEditTradeFormContent(
             )
         }
 
-        // Trade Status Selection (OPEN, WIN, LOSS, BREAKEVEN)
+        // Trade Status Selector (OPEN, WIN, LOSS, BREAKEVEN)
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = "Trade Status / Outcome:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
+            Text(text = "Trade Result Status:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 TradeStatus.entries.forEach { st ->
                     val isSelected = status == st
@@ -315,9 +464,14 @@ fun AddEditTradeFormContent(
                         selected = isSelected,
                         onClick = { status = st },
                         label = { Text(st.displayName, fontSize = 12.sp) },
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = if (st == TradeStatus.WIN) TvGreenProfit else if (st == TradeStatus.LOSS) TvRedLoss else TvPurplePrimary,
+                            selectedContainerColor = when (st) {
+                                TradeStatus.WIN -> TvGreenProfit
+                                TradeStatus.LOSS -> TvRedLoss
+                                TradeStatus.BREAKEVEN -> TvSilver.copy(alpha = 0.4f)
+                                TradeStatus.OPEN -> TvPurplePrimary
+                            },
                             selectedLabelColor = Color.White,
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = TvSilver
@@ -329,24 +483,23 @@ fun AddEditTradeFormContent(
             }
         }
 
-        // Profit / Loss ($) if not OPEN
+        // Profit / Loss ($) if Closed
         if (status != TradeStatus.OPEN) {
             OutlinedTextField(
                 value = pnlStr,
                 onValueChange = { pnlStr = it },
-                label = { Text("Profit / Loss Amount ($)") },
-                placeholder = { Text("e.g. 50.00 or -89.00") },
-                leadingIcon = { Text("$", fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                label = { Text("Realized Profit / Loss ($)") },
+                placeholder = { Text(if (status == TradeStatus.WIN) "+150.00" else if (status == TradeStatus.LOSS) "-100.00" else "0.00") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             )
         }
 
-        // Setup Type
+        // Setup Selection
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = "Trade Setup Strategy:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
+            Text(text = "Setup / Strategy:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
             FlowRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -374,7 +527,7 @@ fun AddEditTradeFormContent(
                 OutlinedTextField(
                     value = customSetup,
                     onValueChange = { customSetup = it },
-                    label = { Text("Custom Setup Name") },
+                    label = { Text("Enter Custom Setup Name") },
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -384,18 +537,18 @@ fun AddEditTradeFormContent(
 
         // Setup Quality
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(text = "Setup Quality:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
+            Text(text = "Execution Quality Grade:", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SetupQuality.entries.forEach { q ->
                     val isSelected = quality == q
                     FilterChip(
                         selected = isSelected,
                         onClick = { quality = q },
-                        label = { Text(q.fullLabel, fontSize = 11.sp) },
-                        shape = RoundedCornerShape(8.dp),
+                        label = { Text(q.fullLabel, fontSize = 12.sp) },
+                        shape = RoundedCornerShape(10.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = TvPlumContainer,
                             selectedLabelColor = TvPurpleGlow,
@@ -409,7 +562,7 @@ fun AddEditTradeFormContent(
             }
         }
 
-        // Mistakes Tracker
+        // Mistakes Tracker (Including "Tight SL")
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Text(text = "Mistakes (Select all that apply):", fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TvSilver)
             FlowRow(
@@ -418,28 +571,32 @@ fun AddEditTradeFormContent(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 DEFAULT_MISTAKES.forEach { m ->
-                    val isSelected = selectedMistakes.contains(m)
+                    val isNoMistakeOption = m.equals("No Mistake", ignoreCase = true)
+                    val isSelected = selectedMistakes.any { it.equals(m, ignoreCase = true) }
                     FilterChip(
                         selected = isSelected,
                         onClick = {
-                            selectedMistakes = if (m == "No mistake") {
-                                setOf("No mistake")
+                            selectedMistakes = if (isNoMistakeOption) {
+                                setOf("No Mistake")
                             } else {
-                                val updated = selectedMistakes.toMutableSet()
-                                updated.remove("No mistake")
-                                if (isSelected) updated.remove(m) else updated.add(m)
-                                if (updated.isEmpty()) setOf("No mistake") else updated
+                                val updated = selectedMistakes.filter { !it.equals("No Mistake", ignoreCase = true) }.toMutableSet()
+                                if (isSelected) {
+                                    updated.removeAll { it.equals(m, ignoreCase = true) }
+                                } else {
+                                    updated.add(m)
+                                }
+                                if (updated.isEmpty()) setOf("No Mistake") else updated
                             }
                         },
                         label = { Text(m, fontSize = 11.sp) },
                         shape = RoundedCornerShape(8.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = if (m == "No mistake") TvPlumContainer else TvRedLoss.copy(alpha = 0.2f),
-                            selectedLabelColor = if (m == "No mistake") TvPurpleGlow else TvRedLoss,
+                            selectedContainerColor = if (isNoMistakeOption) TvPlumContainer else TvRedLoss.copy(alpha = 0.2f),
+                            selectedLabelColor = if (isNoMistakeOption) TvPurpleGlow else TvRedLoss,
                             containerColor = MaterialTheme.colorScheme.surfaceVariant,
                             labelColor = TvSilver
                         ),
-                        border = if (isSelected) BorderStroke(1.dp, if (m == "No mistake") TvPurplePrimary else TvRedLoss) else null
+                        border = if (isSelected) BorderStroke(1.dp, if (isNoMistakeOption) TvPurplePrimary else TvRedLoss) else null
                     )
                 }
             }
@@ -528,7 +685,7 @@ fun AddEditTradeFormContent(
         OutlinedTextField(
             value = lesson,
             onValueChange = { lesson = it },
-            label = { Text("Lesson / What to remember") },
+            label = { Text("Key Lesson / Takeaway") },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
@@ -536,46 +693,42 @@ fun AddEditTradeFormContent(
         OutlinedTextField(
             value = notes,
             onValueChange = { notes = it },
-            label = { Text("General Trade Notes") },
+            label = { Text("General Notes") },
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Screenshot Attachment
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Screenshot Attachment Button
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { imagePickerLauncher.launch("image/*") }
         ) {
-            Text(
-                text = if (screenshotPath != null) "Screenshot Attached ✅" else "Chart Screenshot (Optional)",
-                fontSize = 13.sp,
-                color = TvSilver
-            )
-
-            if (screenshotPath != null) {
-                OutlinedButton(
-                    onClick = { screenshotPath = null },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TvRedLoss)
-                ) {
-                    Text("Remove", fontSize = 12.sp)
-                }
-            } else {
-                OutlinedButton(
-                    onClick = { imagePickerLauncher.launch("image/*") },
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Attach Chart", fontSize = 12.sp)
-                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(14.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AddPhotoAlternate,
+                    contentDescription = null,
+                    tint = TvPurpleGlow
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (screenshotPath != null) "Chart Screenshot Attached ✓" else "Attach Chart Screenshot",
+                    fontWeight = FontWeight.Medium,
+                    color = if (screenshotPath != null) TvGreenProfit else TvSilverBright
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Action Buttons (Cancel / Save Trade)
+        // Action Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -597,6 +750,7 @@ fun AddEditTradeFormContent(
                     val lot = lotSizeStr.toDoubleOrNull() ?: 0.0
                     val plannedRisk = riskAmountStr.toDoubleOrNull() ?: 0.0
                     val riskPct = riskPercentStr.toDoubleOrNull() ?: 1.0
+
                     val slDist = Math.abs(entry - sl)
                     val plannedRr = if (tp != null && slDist > 0) Math.abs(tp - entry) / slDist else null
 
@@ -609,8 +763,9 @@ fun AddEditTradeFormContent(
 
                     val updatedTrade = Trade(
                         id = trade?.id ?: 0L,
+                        accountId = selectedAccountId,
                         dateEpochMs = trade?.dateEpochMs ?: System.currentTimeMillis(),
-                        symbol = symbol,
+                        symbol = symbol.trim().ifBlank { "XAUUSD" }.uppercase(),
                         direction = direction,
                         entryPrice = entry,
                         exitPrice = exit,
@@ -658,6 +813,7 @@ fun AddEditTradeFormContent(
 fun AddEditTradeSheetPreview() {
     val sampleTrade = Trade(
         id = 1,
+        accountId = 1,
         symbol = "XAUUSD",
         direction = TradeDirection.BUY,
         entryPrice = 2650.00,

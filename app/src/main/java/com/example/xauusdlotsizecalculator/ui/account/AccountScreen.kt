@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,9 +23,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Calculate
-import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
@@ -37,6 +42,8 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -46,6 +53,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -73,11 +81,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.xauusdlotsizecalculator.data.database.AccountCalculatedStats
+import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.CalculatorSettings
 import com.example.xauusdlotsizecalculator.domain.model.DisciplineSettings
-import com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode
-import com.example.xauusdlotsizecalculator.domain.model.LotStep
-import com.example.xauusdlotsizecalculator.domain.model.PropFirmSettings
 import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
@@ -134,10 +141,27 @@ fun AccountScreen(
     AccountScreenContent(
         uiState = uiState,
         snackbarHostState = snackbarHostState,
-        onEditProp = { viewModel.setShowEditPropDialog(true) },
-        onEditDiscipline = { viewModel.setShowEditDisciplineDialog(true) },
-        onAdjustBalance = { viewModel.setShowEditBalanceDialog(true) },
-        onEditCalculator = { viewModel.setShowEditCalculatorDialog(true) },
+        onSelectAccount = { viewModel.onSelectAccount(it) },
+        onOpenAddAccount = { viewModel.setShowAddAccountDialog(true) },
+        onOpenEditAccount = { viewModel.setShowEditAccountDialog(true) },
+        onOpenDeleteAccount = { viewModel.setShowDeleteAccountDialog(true) },
+        onOpenAdjustBalance = { viewModel.setShowAdjustBalanceDialog(true) },
+        onOpenEditDiscipline = { viewModel.setShowEditDisciplineDialog(true) },
+        onOpenEditCalculator = { viewModel.setShowEditCalculatorDialog(true) },
+        onSaveAccount = { viewModel.onUpdateAccount(it) },
+        onAddAccount = { viewModel.onAddAccount(it) },
+        onDeleteAccount = { id, moveTradesToId -> viewModel.onDeleteAccount(id, moveTradesToId) },
+        onAdjustBalance = { viewModel.onAdjustStartingBalance(it) },
+        onSaveDiscipline = { viewModel.onSaveDisciplineSettings(it) },
+        onSaveCalculator = { viewModel.onSaveCalculatorSettings(it) },
+        onDismissDialogs = {
+            viewModel.setShowAddAccountDialog(false)
+            viewModel.setShowEditAccountDialog(false)
+            viewModel.setShowDeleteAccountDialog(false)
+            viewModel.setShowAdjustBalanceDialog(false)
+            viewModel.setShowEditDisciplineDialog(false)
+            viewModel.setShowEditCalculatorDialog(false)
+        },
         onExportCsv = {
             scope.launch {
                 val csv = viewModel.getExportCsv()
@@ -163,14 +187,6 @@ fun AccountScreen(
         onImportJson = {
             importJsonLauncher.launch("application/json")
         },
-        onSaveBalance = { viewModel.onUpdateBalance(it) },
-        onDismissBalanceDialog = { viewModel.setShowEditBalanceDialog(false) },
-        onSaveProp = { viewModel.onSavePropFirmSettings(it) },
-        onDismissPropDialog = { viewModel.setShowEditPropDialog(false) },
-        onSaveDiscipline = { viewModel.onSaveDisciplineSettings(it) },
-        onDismissDisciplineDialog = { viewModel.setShowEditDisciplineDialog(false) },
-        onSaveCalculator = { viewModel.onSaveCalculatorSettings(it) },
-        onDismissCalculatorDialog = { viewModel.setShowEditCalculatorDialog(false) },
         modifier = modifier
     )
 }
@@ -180,23 +196,29 @@ fun AccountScreen(
 fun AccountScreenContent(
     uiState: AccountUiState,
     snackbarHostState: SnackbarHostState? = null,
-    onEditProp: () -> Unit = {},
-    onEditDiscipline: () -> Unit = {},
-    onAdjustBalance: () -> Unit = {},
-    onEditCalculator: () -> Unit = {},
+    onSelectAccount: (Long) -> Unit = {},
+    onOpenAddAccount: () -> Unit = {},
+    onOpenEditAccount: () -> Unit = {},
+    onOpenDeleteAccount: () -> Unit = {},
+    onOpenAdjustBalance: () -> Unit = {},
+    onOpenEditDiscipline: () -> Unit = {},
+    onOpenEditCalculator: () -> Unit = {},
+    onSaveAccount: (Account) -> Unit = {},
+    onAddAccount: (Account) -> Unit = {},
+    onDeleteAccount: (Long, Long?) -> Unit = { _, _ -> },
+    onAdjustBalance: (Double) -> Unit = {},
+    onSaveDiscipline: (DisciplineSettings) -> Unit = {},
+    onSaveCalculator: (CalculatorSettings) -> Unit = {},
+    onDismissDialogs: () -> Unit = {},
     onExportCsv: () -> Unit = {},
     onExportJson: () -> Unit = {},
     onImportJson: () -> Unit = {},
-    onSaveBalance: (Double) -> Unit = {},
-    onDismissBalanceDialog: () -> Unit = {},
-    onSaveProp: (PropFirmSettings) -> Unit = {},
-    onDismissPropDialog: () -> Unit = {},
-    onSaveDiscipline: (DisciplineSettings) -> Unit = {},
-    onDismissDisciplineDialog: () -> Unit = {},
-    onSaveCalculator: (CalculatorSettings) -> Unit = {},
-    onDismissCalculatorDialog: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val stats = uiState.currentAccountStats
+    val activeAccount = stats?.account ?: uiState.availableAccounts.firstOrNull { it.id == uiState.selectedAccountId }
+    var accountDropdownExpanded by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -211,7 +233,7 @@ fun AccountScreenContent(
                             modifier = Modifier.padding(end = 8.dp)
                         ) {
                             Text(
-                                text = "PROP",
+                                text = if (activeAccount?.isPropFirm == true) "PROP" else "LIVE",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Black,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -219,7 +241,7 @@ fun AccountScreenContent(
                             )
                         }
                         Text(
-                            text = "Account & Rules",
+                            text = "Trading Accounts",
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
                             color = MaterialTheme.colorScheme.onBackground
@@ -243,35 +265,156 @@ fun AccountScreenContent(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Section 1: PropScholar Dashboard Card
-            PropFirmCard(
-                propSettings = uiState.propFirmSettings,
-                currentBalance = uiState.currentBalance,
-                onEdit = onEditProp
-            )
+            // Section 1: Active Account Header & Switcher
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "ACCOUNT",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TvSilver
+                )
 
-            // Section 2: Personal Trading Limits & Discipline Guard
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(14.dp))
+                                .clickable { accountDropdownExpanded = true },
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.2.dp, TvPurplePrimary),
+                            shape = RoundedCornerShape(14.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalance,
+                                        contentDescription = null,
+                                        tint = TvPurpleGlow,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(
+                                            text = activeAccount?.name ?: "Select Account",
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = TvSilverBright
+                                        )
+                                        Text(
+                                            text = "${if (activeAccount?.isPropFirm == true) "Prop Account" else "Personal Account"} • ${activeAccount?.currency ?: "$"}${DecimalFormat("#,##0.00").format(stats?.currentBalance ?: activeAccount?.currentBalance ?: 5000.0)}",
+                                            fontSize = 11.sp,
+                                            color = TvSilver
+                                        )
+                                    }
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = null,
+                                    tint = TvSilver
+                                )
+                            }
+                        }
+
+                        DropdownMenu(
+                            expanded = accountDropdownExpanded,
+                            onDismissRequest = { accountDropdownExpanded = false }
+                        ) {
+                            uiState.availableAccounts.forEach { acc ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Column {
+                                            Text(
+                                                text = acc.name,
+                                                fontWeight = if (acc.id == uiState.selectedAccountId) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                            Text(
+                                                text = "Balance: ${acc.currency}${DecimalFormat("#,##0.00").format(acc.currentBalance)}",
+                                                fontSize = 11.sp,
+                                                color = TvSilver
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        onSelectAccount(acc.id)
+                                        accountDropdownExpanded = false
+                                    }
+                                )
+                            }
+                            DropdownMenuItem(
+                                text = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Add, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("+ Add New Account", fontWeight = FontWeight.Bold, color = TvPurpleGlow)
+                                    }
+                                },
+                                onClick = {
+                                    accountDropdownExpanded = false
+                                    onOpenAddAccount()
+                                }
+                            )
+                        }
+                    }
+
+                    // Edit Account Button
+                    IconButton(
+                        onClick = onOpenEditAccount,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Account", tint = TvSilver)
+                    }
+
+                    // Delete Account Button (only if more than 1 account)
+                    if (uiState.availableAccounts.size > 1) {
+                        IconButton(
+                            onClick = onOpenDeleteAccount,
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                        ) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Account", tint = TvRedLoss)
+                        }
+                    }
+                }
+            }
+
+            // Section 2: Account Overview Dashboard Card
+            if (stats != null && activeAccount != null) {
+                AccountDashboardCard(
+                    stats = stats,
+                    onAdjustBalance = onOpenAdjustBalance,
+                    onEditRules = onOpenEditAccount
+                )
+            }
+
+            // Section 3: Personal Discipline Guard
             DisciplineCard(
                 discipline = uiState.disciplineSettings,
-                todayTrades = uiState.todayTradesCount,
-                todayPnl = uiState.todayPnl,
+                todayTrades = stats?.todayTradesCount ?: 0,
+                todayPnl = stats?.todayPnl ?: 0.0,
                 isSessionLimit = uiState.isSessionLimitExceeded,
                 isLossStop = uiState.isDailyLossStopExceeded,
                 isProfitStop = uiState.isDailyProfitStopReached,
-                onEdit = onEditDiscipline
+                onEdit = onOpenEditDiscipline
             )
 
-            // Section 3: Balance Reconcile & Tracking
-            BalanceCard(
-                currentBalance = uiState.currentBalance,
-                autoSync = uiState.disciplineSettings.autoSyncBalance,
-                onAdjustBalance = onAdjustBalance
-            )
-
-            // Section 4: Settings & Data Management
+            // Section 4: Data Management & Calculator Preferences
             SettingsSection(
                 calculatorSettings = uiState.calculatorSettings,
-                onEditCalculator = onEditCalculator,
+                onEditCalculator = onOpenEditCalculator,
                 onExportCsv = onExportCsv,
                 onExportJson = onExportJson,
                 onImportJson = onImportJson
@@ -281,19 +424,39 @@ fun AccountScreenContent(
         }
 
         // Dialogs
-        if (uiState.showEditBalanceDialog) {
-            EditBalanceDialog(
-                currentBalance = uiState.currentBalance,
-                onSave = onSaveBalance,
-                onDismiss = onDismissBalanceDialog
+        if (uiState.showAddAccountDialog) {
+            AddEditAccountDialog(
+                account = null,
+                onSave = { onAddAccount(it) },
+                onDismiss = onDismissDialogs
             )
         }
 
-        if (uiState.showEditPropDialog) {
-            EditPropFirmDialog(
-                current = uiState.propFirmSettings,
-                onSave = onSaveProp,
-                onDismiss = onDismissPropDialog
+        if (uiState.showEditAccountDialog && activeAccount != null) {
+            AddEditAccountDialog(
+                account = activeAccount,
+                onSave = { onSaveAccount(it) },
+                onDismiss = onDismissDialogs
+            )
+        }
+
+        if (uiState.showDeleteAccountDialog && activeAccount != null) {
+            DeleteAccountDialog(
+                accountToDelete = activeAccount,
+                otherAccounts = uiState.availableAccounts.filter { it.id != activeAccount.id },
+                onConfirmDelete = { moveTradesToId ->
+                    onDeleteAccount(activeAccount.id, moveTradesToId)
+                },
+                onDismiss = onDismissDialogs
+            )
+        }
+
+        if (uiState.showAdjustBalanceDialog && activeAccount != null) {
+            AdjustBalanceDialog(
+                currentStarting = activeAccount.startingBalance,
+                currency = activeAccount.currency,
+                onSave = { onAdjustBalance(it) },
+                onDismiss = onDismissDialogs
             )
         }
 
@@ -301,7 +464,7 @@ fun AccountScreenContent(
             EditDisciplineDialog(
                 current = uiState.disciplineSettings,
                 onSave = onSaveDiscipline,
-                onDismiss = onDismissDisciplineDialog
+                onDismiss = onDismissDialogs
             )
         }
 
@@ -309,23 +472,23 @@ fun AccountScreenContent(
             EditCalculatorDialog(
                 current = uiState.calculatorSettings,
                 onSave = onSaveCalculator,
-                onDismiss = onDismissCalculatorDialog
+                onDismiss = onDismissDialogs
             )
         }
     }
 }
 
 @Composable
-private fun PropFirmCard(
-    propSettings: PropFirmSettings,
-    currentBalance: Double,
-    onEdit: () -> Unit
+private fun AccountDashboardCard(
+    stats: AccountCalculatedStats,
+    onAdjustBalance: () -> Unit,
+    onEditRules: () -> Unit
 ) {
-    val starting = propSettings.startingBalance
-    val profit = currentBalance - starting
-    val targetAmount = propSettings.profitTargetAmount
-    val progressPercent = if (targetAmount > 0) ((profit / targetAmount) * 100.0).coerceIn(0.0, 100.0) else 0.0
-    val remaining = (targetAmount - profit).coerceAtLeast(0.0)
+    val acc = stats.account
+    val pnl = stats.totalPnl
+    val pnlColor = if (pnl > 0) TvGreenProfit else if (pnl < 0) TvRedLoss else TvSilver
+    val pnlSign = if (pnl > 0) "+" else if (pnl < 0) "-" else ""
+    val pnlPct = if (acc.startingBalance > 0) (pnl / acc.startingBalance) * 100.0 else 0.0
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -339,7 +502,7 @@ private fun PropFirmCard(
                 .padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Header Row
+            // Header Row: Shield + Name + Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -347,116 +510,239 @@ private fun PropFirmCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Shield,
+                        imageVector = if (acc.isPropFirm) Icons.Default.Shield else Icons.Default.AccountBalance,
                         contentDescription = null,
                         tint = TvPurpleGlow,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = propSettings.name,
+                        text = acc.name,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = TvSilverBright
                     )
                 }
 
-                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = TvSilver, modifier = Modifier.size(18.dp))
-                }
-            }
-
-            // Balances & Target Row
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
-            ) {
-                Column {
-                    Text(
-                        text = "$${DecimalFormat("#,##0.00").format(currentBalance)}",
-                        style = FinancialNumericStyle.copy(fontSize = 32.sp, color = TvPurpleNumber)
-                    )
-                    Text(
-                        text = "Starting: $${DecimalFormat("#,##0").format(starting)}",
-                        fontSize = 12.sp,
-                        color = TvSilver
-                    )
-                }
-
-                Column(horizontalAlignment = Alignment.End) {
-                    val pSign = if (profit >= 0) "+" else "-"
-                    val pColor = if (profit >= 0) TvGreenProfit else TvRedLoss
-                    Text(
-                        text = "$pSign$${DecimalFormat("#,##0.00").format(Math.abs(profit))}",
-                        fontSize = 18.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = pColor
-                    )
-                    Text(
-                        text = "Target: +$${DecimalFormat("#,##0").format(targetAmount)} (${propSettings.profitTargetPercent}%)",
-                        fontSize = 12.sp,
-                        color = TvSilver
-                    )
-                }
-            }
-
-            // Progress Bar towards Target
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = TvPlumContainer,
+                    border = BorderStroke(1.dp, TvDarkSurfaceBorder)
                 ) {
                     Text(
-                        text = "Phase 1 Target Progress: ${DecimalFormat("0.0").format(progressPercent)}%",
-                        fontSize = 12.sp,
-                        color = TvSilverBright
-                    )
-                    Text(
-                        text = "$${DecimalFormat("#,##0.00").format(remaining)} to target",
-                        fontSize = 12.sp,
-                        color = TvPurpleGlow
+                        text = if (acc.isPropFirm) "PROP RULES" else "PERSONAL",
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TvPurpleGlow,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
+            }
 
-                LinearProgressIndicator(
-                    progress = { (progressPercent / 100.0).toFloat() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
-                    color = TvGreenProfit,
-                    trackColor = TvPlumContainer
+            // 4-Grid Balance & P/L Metrics
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MetricBox(
+                    label = "Starting Balance",
+                    value = "${acc.currency}${DecimalFormat("#,##0.00").format(acc.startingBalance)}",
+                    valueColor = TvSilverBright,
+                    modifier = Modifier.weight(1f)
+                )
+                MetricBox(
+                    label = "Current Balance",
+                    value = "${acc.currency}${DecimalFormat("#,##0.00").format(stats.currentBalance)}",
+                    valueColor = TvSilverBright,
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            // Risk Limits Strip
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                modifier = Modifier.fillMaxWidth()
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(
+                MetricBox(
+                    label = "Total Realized P/L",
+                    value = "$pnlSign${acc.currency}${DecimalFormat("#,##0.00").format(Math.abs(pnl))}",
+                    subText = "${DecimalFormat("+0.00;-0.00").format(pnlPct)}%",
+                    valueColor = pnlColor,
+                    modifier = Modifier.weight(1f)
+                )
+
+                val todayPnl = stats.todayPnl
+                val todayColor = if (todayPnl > 0) TvGreenProfit else if (todayPnl < 0) TvRedLoss else TvSilver
+                val todaySign = if (todayPnl > 0) "+" else if (todayPnl < 0) "-" else ""
+                MetricBox(
+                    label = "Today's P/L",
+                    value = "$todaySign${acc.currency}${DecimalFormat("#,##0.00").format(Math.abs(todayPnl))}",
+                    subText = "${stats.todayTradesCount} trades today",
+                    valueColor = todayColor,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            // Prop Firm Rules / Loss Limits Section
+            if (acc.isPropFirm) {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    LimitItem("Max Loss (6%)", "$${DecimalFormat("#,##0").format(propSettings.maxLossAmount)}")
-                    LimitItem("Daily Loss (3%)", "$${DecimalFormat("#,##0").format(propSettings.dailyLossAmount)}")
-                    LimitItem("XAUUSD Open Limit", "${DecimalFormat("0.00").format(propSettings.maxGoldVolumeLots)} lots")
+                    // Profit Target
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Profit Target (${acc.profitTargetPercent}%)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TvSilver
+                            )
+                            Text(
+                                text = if (stats.isTargetReached) "Target Achieved! ✓" else "${acc.currency}${DecimalFormat("#,##0.00").format(stats.profitTargetRemainingAmount)} remaining",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (stats.isTargetReached) TvGreenProfit else TvSilverBright
+                            )
+                        }
+                        LinearProgressIndicator(
+                            progress = { (stats.profitTargetProgressPercent / 100.0).toFloat().coerceIn(0f, 1f) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            color = TvGreenProfit,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    }
+
+                    // Max Loss & Daily Loss Remaining
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text(
+                                text = "Max Loss Limit (${acc.maxLossPercent}%)",
+                                fontSize = 11.sp,
+                                color = TvSilver
+                            )
+                            Text(
+                                text = "${acc.currency}${DecimalFormat("#,##0.00").format(stats.maxLossRemainingAmount)} left",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (stats.isMaxLossLimitExceeded) TvRedLoss else TvSilverBright
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "Daily Loss Limit (${acc.dailyLossPercent}%)",
+                                fontSize = 11.sp,
+                                color = TvSilver
+                            )
+                            Text(
+                                text = "${acc.currency}${DecimalFormat("#,##0.00").format(stats.dailyLossRemainingAmount)} left",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (stats.isDailyLossLimitExceeded) TvRedLoss else TvSilverBright
+                            )
+                        }
+                    }
+
+                    // Account Specific Trading Specs
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Max Gold: ${DecimalFormat("0.00").format(acc.maxGoldLots)} lots",
+                            fontSize = 11.sp,
+                            color = TvSilver
+                        )
+                        Text(
+                            text = "Leverage: 1:${acc.leverage}",
+                            fontSize = 11.sp,
+                            color = TvSilver
+                        )
+                    }
                 }
             }
 
+            // Quick Actions: Adjust Balance & Edit Rules
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onAdjustBalance,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Adjust Balance", fontSize = 12.sp)
+                }
+
+                Button(
+                    onClick = onEditRules,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = TvPurplePrimary,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Edit Rules", fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricBox(
+    label: String,
+    value: String,
+    valueColor: Color,
+    subText: String? = null,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
             Text(
-                text = "Manual tracking tool • Not affiliated with or connected to PropScholar API",
-                fontSize = 10.sp,
-                color = TvSilver.copy(alpha = 0.6f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
+                color = TvSilver
             )
+            Text(
+                text = value,
+                fontSize = 15.sp,
+                fontFamily = FontFamily.Monospace,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
+            )
+            if (subText != null) {
+                Text(
+                    text = subText,
+                    fontSize = 10.sp,
+                    color = TvSilver.copy(alpha = 0.8f)
+                )
+            }
         }
     }
 }
@@ -497,66 +783,38 @@ private fun DisciplineCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "PERSONAL DISCIPLINE GUARD",
-                        fontSize = 12.sp,
+                        text = "Discipline & Psychology Guard",
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                        color = TvSilver
+                        color = TvSilverBright
                     )
                 }
 
-                IconButton(onClick = onEdit, modifier = Modifier.size(28.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit", tint = TvSilver, modifier = Modifier.size(18.dp))
+                IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit Rules", tint = TvSilver, modifier = Modifier.size(16.dp))
                 }
             }
 
-            // Warning Banners if Limits Reached
+            // Status alerts
             if (isSessionLimit) {
-                DisciplineWarningBanner(
-                    icon = Icons.Default.WarningAmber,
-                    title = "Session Limit Reached",
-                    message = "You have taken $todayTrades of ${discipline.maxTradesPerSession} planned trades today. Protect your edge and stop overtrading."
-                )
+                WarningBanner("Session limit reached ($todayTrades / ${discipline.maxTradesPerSession} trades). Step away from the charts.")
             }
-
             if (isLossStop) {
-                DisciplineWarningBanner(
-                    icon = Icons.Default.WarningAmber,
-                    title = "Daily Loss Stop Hit",
-                    message = "Daily loss of $${DecimalFormat("#,##0.00").format(Math.abs(todayPnl))} exceeds your -$${discipline.dailyLossStop} stop. Step away from charts."
-                )
+                WarningBanner("Daily loss stop hit ($${DecimalFormat("#,##0.00").format(Math.abs(todayPnl))} / $${DecimalFormat("#,##0.00").format(discipline.dailyLossStop)}). Stop trading for today.")
             }
-
             if (isProfitStop) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = TvGreenProfit.copy(alpha = 0.15f),
-                    border = BorderStroke(1.dp, TvGreenProfit.copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(text = "🎯", fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Daily profit target (+$${discipline.dailyProfitStop}) hit! Lock in gains and protect capital.",
-                            fontSize = 12.sp,
-                            color = TvGreenProfit
-                        )
-                    }
-                }
-            }
-
-            if (!isSessionLimit && !isLossStop && !isProfitStop) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(10.dp),
+                    color = TvPlumContainer,
+                    border = BorderStroke(1.dp, TvPurplePrimary),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🟢 Trading discipline in good standing: $todayTrades/${discipline.maxTradesPerSession} trades taken today.",
+                        text = "Daily profit target hit (+$${DecimalFormat("#,##0.00").format(todayPnl)})! Protect your capital.",
+                        color = TvPurpleGlow,
                         fontSize = 12.sp,
-                        color = TvSilverBright,
-                        modifier = Modifier.padding(12.dp)
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(10.dp)
                     )
                 }
             }
@@ -565,80 +823,29 @@ private fun DisciplineCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                LimitItem("Max Trades/Session", "${discipline.maxTradesPerSession}")
-                LimitItem("Daily Profit Stop", "+$${DecimalFormat("#,##0").format(discipline.dailyProfitStop)}")
-                LimitItem("Daily Loss Stop", "-$${DecimalFormat("#,##0").format(discipline.dailyLossStop)}")
+                Text(text = "Max Trades / Day: ${discipline.maxTradesPerSession}", fontSize = 12.sp, color = TvSilver)
+                Text(text = "Daily Loss Stop: $${discipline.dailyLossStop.toInt()}", fontSize = 12.sp, color = TvSilver)
+                Text(text = "Profit Stop: $${discipline.dailyProfitStop.toInt()}", fontSize = 12.sp, color = TvSilver)
             }
         }
     }
 }
 
 @Composable
-private fun DisciplineWarningBanner(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    title: String,
-    message: String
-) {
+private fun WarningBanner(message: String) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(10.dp),
         color = TvWarningContainer,
-        border = BorderStroke(1.2.dp, TvWarningContainerBorder),
+        border = BorderStroke(1.dp, TvWarningContainerBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
-            Icon(icon, contentDescription = null, tint = TvWarning, modifier = Modifier.size(20.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Column {
-                Text(text = title, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TvWarningText)
-                Text(text = message, fontSize = 11.sp, color = TvSilverBright)
-            }
-        }
-    }
-}
-
-@Composable
-private fun BalanceCard(
-    currentBalance: Double,
-    autoSync: Boolean,
-    onAdjustBalance: () -> Unit
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
-    ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
-                Text(text = "CURRENT ACCOUNT BALANCE", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = TvSilver)
-                Text(
-                    text = "$${DecimalFormat("#,##0.00").format(currentBalance)}",
-                    fontSize = 24.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold,
-                    color = TvSilverBright
-                )
-                Text(
-                    text = if (autoSync) "Auto-updates with logged trades" else "Manual sync only",
-                    fontSize = 11.sp,
-                    color = TvSilver
-                )
-            }
-
-            Button(
-                onClick = onAdjustBalance,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = TvPlumContainer, contentColor = TvPurpleGlow),
-                border = BorderStroke(1.dp, TvDarkSurfaceBorder)
-            ) {
-                Text("Adjust")
-            }
+            Icon(Icons.Default.WarningAmber, contentDescription = null, tint = TvWarning, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = message, color = TvWarningText, fontSize = 12.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -661,21 +868,19 @@ private fun SettingsSection(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "CONFIG & DATA MANAGEMENT",
-                fontSize = 12.sp,
+                text = "Preferences & Data Backup",
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
-                letterSpacing = 1.sp,
-                color = TvSilver
+                color = TvSilverBright
             )
 
-            // Calculator Parameters Row
+            // Calculator settings row
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(onClick = onEditCalculator)
@@ -688,12 +893,12 @@ private fun SettingsSection(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Calculate, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Default.Calculate, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
-                            Text(text = "Calculator Specifications", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TvSilverBright)
+                            Text("Calculator Defaults", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TvSilverBright)
                             Text(
-                                text = "${calculatorSettings.contractSize.toInt()} oz/lot • Step ${calculatorSettings.defaultLotStep.displayName} • ${calculatorSettings.roundingMode.displayName}",
+                                "Default Size: $${calculatorSettings.defaultAccountSize.toInt()} • Risk: ${calculatorSettings.defaultRiskPercent}%",
                                 fontSize = 11.sp,
                                 color = TvSilver
                             )
@@ -703,125 +908,356 @@ private fun SettingsSection(
                 }
             }
 
-            // Export Trades CSV
-            OutlinedButton(
-                onClick = onExportCsv,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
+            // Export / Import Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Export Trades (CSV Spreadsheet)")
-            }
+                OutlinedButton(
+                    onClick = onExportCsv,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Export CSV", fontSize = 11.sp)
+                }
 
-            // Export Full JSON Backup
-            OutlinedButton(
-                onClick = onExportJson,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Export Complete Backup (JSON)")
-            }
+                OutlinedButton(
+                    onClick = onExportJson,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Backup JSON", fontSize = 11.sp)
+                }
 
-            // Import Backup JSON
-            OutlinedButton(
-                onClick = onImportJson,
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Import Backup (JSON)")
+                OutlinedButton(
+                    onClick = onImportJson,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Restore", fontSize = 11.sp)
+                }
             }
         }
     }
 }
 
+// ==========================================
+// DIALOGS WITH VISIBLE BACK BUTTONS
+// ==========================================
+
 @Composable
-private fun LimitItem(label: String, value: String) {
-    Column {
-        Text(text = label, fontSize = 10.sp, color = TvSilver)
-        Text(text = value, fontSize = 13.sp, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, color = TvSilverBright)
-    }
+fun AddEditAccountDialog(
+    account: Account?,
+    onSave: (Account) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val isEdit = account != null
+    var name by remember { mutableStateOf(account?.name ?: "") }
+    var startingBalanceStr by remember { mutableStateOf(account?.startingBalance?.toInt()?.toString() ?: "5000") }
+    var currency by remember { mutableStateOf(account?.currency ?: "$") }
+    var isPropFirm by remember { mutableStateOf(account?.isPropFirm ?: true) }
+    var profitTargetStr by remember { mutableStateOf(account?.profitTargetPercent?.toString() ?: "10.0") }
+    var maxLossStr by remember { mutableStateOf(account?.maxLossPercent?.toString() ?: "6.0") }
+    var dailyLossStr by remember { mutableStateOf(account?.dailyLossPercent?.toString() ?: "3.0") }
+    var maxGoldStr by remember { mutableStateOf(account?.maxGoldLots?.toString() ?: "0.20") }
+    var leverageStr by remember { mutableStateOf(account?.leverage?.toString() ?: "50") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(if (isEdit) "Edit Account & Rules" else "Add Trading Account")
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Account Name") },
+                    placeholder = { Text("e.g. PropScholar Freedom 5K") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = startingBalanceStr,
+                        onValueChange = { startingBalanceStr = it },
+                        label = { Text("Starting Balance") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        singleLine = true,
+                        modifier = Modifier.weight(1.5f)
+                    )
+
+                    OutlinedTextField(
+                        value = currency,
+                        onValueChange = { currency = it },
+                        label = { Text("Currency") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                // Account Type Selector
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = isPropFirm,
+                        onClick = { isPropFirm = true },
+                        label = { Text("Prop Firm") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    FilterChip(
+                        selected = !isPropFirm,
+                        onClick = { isPropFirm = false },
+                        label = { Text("Personal") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                if (isPropFirm) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = profitTargetStr,
+                            onValueChange = { profitTargetStr = it },
+                            label = { Text("Target %") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = maxLossStr,
+                            onValueChange = { maxLossStr = it },
+                            label = { Text("Max Loss %") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = dailyLossStr,
+                            onValueChange = { dailyLossStr = it },
+                            label = { Text("Daily Loss %") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = maxGoldStr,
+                            onValueChange = { maxGoldStr = it },
+                            label = { Text("Max Gold Lots") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f)
+                        )
+                        OutlinedTextField(
+                            value = leverageStr,
+                            onValueChange = { leverageStr = it },
+                            label = { Text("Leverage (1:X)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val bal = startingBalanceStr.toDoubleOrNull() ?: 5000.0
+                    val acc = Account(
+                        id = account?.id ?: 0L,
+                        name = name.trim().ifBlank { "Account" },
+                        currency = currency.trim().ifBlank { "$" },
+                        startingBalance = bal,
+                        currentBalance = account?.currentBalance ?: bal,
+                        profitTargetPercent = profitTargetStr.toDoubleOrNull() ?: 10.0,
+                        maxLossPercent = maxLossStr.toDoubleOrNull() ?: 6.0,
+                        dailyLossPercent = dailyLossStr.toDoubleOrNull() ?: 3.0,
+                        maxGoldLots = maxGoldStr.toDoubleOrNull() ?: 0.20,
+                        leverage = leverageStr.toIntOrNull() ?: 50,
+                        isPropFirm = isPropFirm
+                    )
+                    onSave(acc)
+                }
+            ) {
+                Text(if (isEdit) "Save Changes" else "Create Account")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
-private fun EditBalanceDialog(
-    currentBalance: Double,
+fun DeleteAccountDialog(
+    accountToDelete: Account,
+    otherAccounts: List<Account>,
+    onConfirmDelete: (Long?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedChoice by remember { mutableStateOf(if (otherAccounts.isNotEmpty()) "MOVE" else "DELETE") }
+    var targetAccountId by remember { mutableStateOf(otherAccounts.firstOrNull()?.id) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Delete '${accountToDelete.name}'?")
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(
+                    text = "Do not lose your trading history accidentally. Choose how to handle trades belonging to this account:",
+                    fontSize = 13.sp,
+                    color = TvSilver
+                )
+
+                if (otherAccounts.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { selectedChoice = "MOVE" }
+                    ) {
+                        RadioButton(
+                            selected = selectedChoice == "MOVE",
+                            onClick = { selectedChoice = "MOVE" }
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Move trades to another account", fontSize = 13.sp)
+                    }
+
+                    if (selectedChoice == "MOVE") {
+                        Column(modifier = Modifier.padding(start = 32.dp)) {
+                            otherAccounts.forEach { acc ->
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { targetAccountId = acc.id }
+                                ) {
+                                    RadioButton(
+                                        selected = targetAccountId == acc.id,
+                                        onClick = { targetAccountId = acc.id }
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(acc.name, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { selectedChoice = "DELETE" }
+                ) {
+                    RadioButton(
+                        selected = selectedChoice == "DELETE",
+                        onClick = { selectedChoice = "DELETE" }
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Delete associated trades permanently", fontSize = 13.sp, color = TvRedLoss)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val moveTo = if (selectedChoice == "MOVE") targetAccountId else null
+                    onConfirmDelete(moveTo)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = TvRedLoss)
+            ) {
+                Text("Delete Account")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun AdjustBalanceDialog(
+    currentStarting: Double,
+    currency: String,
     onSave: (Double) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var balanceInput by remember { mutableStateOf(currentBalance.toString().removeSuffix(".0")) }
+    var balStr by remember { mutableStateOf(currentStarting.toInt().toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Adjust Current Balance") },
-        text = {
-            OutlinedTextField(
-                value = balanceInput,
-                onValueChange = { balanceInput = it },
-                label = { Text("Account Balance ($)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(onClick = {
-                val bal = balanceInput.toDoubleOrNull() ?: currentBalance
-                onSave(bal)
-            }) {
-                Text("Save")
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Adjust Starting Balance")
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-@Composable
-private fun EditPropFirmDialog(
-    current: PropFirmSettings,
-    onSave: (PropFirmSettings) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var name by remember { mutableStateOf(current.name) }
-    var startingBalance by remember { mutableStateOf(current.startingBalance.toString().removeSuffix(".0")) }
-    var targetPct by remember { mutableStateOf(current.profitTargetPercent.toString().removeSuffix(".0")) }
-    var maxLossPct by remember { mutableStateOf(current.maxLossPercent.toString().removeSuffix(".0")) }
-    var dailyLossPct by remember { mutableStateOf(current.dailyLossPercent.toString().removeSuffix(".0")) }
-    var maxGoldLot by remember { mutableStateOf(current.maxGoldVolumeLots.toString()) }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Edit Prop Firm Rules") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Prop Firm Program") }, singleLine = true)
-                OutlinedTextField(value = startingBalance, onValueChange = { startingBalance = it }, label = { Text("Starting Balance ($)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                OutlinedTextField(value = targetPct, onValueChange = { targetPct = it }, label = { Text("Profit Target (%)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                OutlinedTextField(value = maxLossPct, onValueChange = { maxLossPct = it }, label = { Text("Max Overall Loss (%)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                OutlinedTextField(value = dailyLossPct, onValueChange = { dailyLossPct = it }, label = { Text("Daily Loss Limit (%)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                OutlinedTextField(value = maxGoldLot, onValueChange = { maxGoldLot = it }, label = { Text("XAUUSD Max Open Volume (lots)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+                Text(
+                    text = "Current balance will recalculate automatically as Starting Balance + Realized P/L.",
+                    fontSize = 12.sp,
+                    color = TvSilver
+                )
+                OutlinedTextField(
+                    value = balStr,
+                    onValueChange = { balStr = it },
+                    label = { Text("Starting Balance") },
+                    leadingIcon = { Text(currency, modifier = Modifier.padding(start = 12.dp)) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onSave(
-                    current.copy(
-                        name = name,
-                        startingBalance = startingBalance.toDoubleOrNull() ?: current.startingBalance,
-                        profitTargetPercent = targetPct.toDoubleOrNull() ?: current.profitTargetPercent,
-                        maxLossPercent = maxLossPct.toDoubleOrNull() ?: current.maxLossPercent,
-                        dailyLossPercent = dailyLossPct.toDoubleOrNull() ?: current.dailyLossPercent,
-                        maxGoldVolumeLots = maxGoldLot.toDoubleOrNull() ?: current.maxGoldVolumeLots
-                    )
-                )
-            }) {
-                Text("Save")
+            Button(
+                onClick = {
+                    val newBal = balStr.toDoubleOrNull() ?: currentStarting
+                    onSave(newBal)
+                }
+            ) {
+                Text("Update")
             }
         },
         dismissButton = {
@@ -831,46 +1267,70 @@ private fun EditPropFirmDialog(
 }
 
 @Composable
-private fun EditDisciplineDialog(
+fun EditDisciplineDialog(
     current: DisciplineSettings,
     onSave: (DisciplineSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
     var maxTrades by remember { mutableStateOf(current.maxTradesPerSession.toString()) }
-    var profitStop by remember { mutableStateOf(current.dailyProfitStop.toString().removeSuffix(".0")) }
-    var lossStop by remember { mutableStateOf(current.dailyLossStop.toString().removeSuffix(".0")) }
+    var lossStop by remember { mutableStateOf(current.dailyLossStop.toInt().toString()) }
+    var profitStop by remember { mutableStateOf(current.dailyProfitStop.toInt().toString()) }
     var autoSync by remember { mutableStateOf(current.autoSyncBalance) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Personal Discipline Rules") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Discipline Rules")
+            }
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = maxTrades, onValueChange = { maxTrades = it }, label = { Text("Max Trades per Session") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
-                OutlinedTextField(value = profitStop, onValueChange = { profitStop = it }, label = { Text("Daily Profit Stop ($)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                OutlinedTextField(value = lossStop, onValueChange = { lossStop = it }, label = { Text("Daily Loss Stop ($)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Auto-update balance with trades", fontSize = 13.sp)
-                    Switch(checked = autoSync, onCheckedChange = { autoSync = it })
-                }
+                OutlinedTextField(
+                    value = maxTrades,
+                    onValueChange = { maxTrades = it },
+                    label = { Text("Max Trades Per Day") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = lossStop,
+                    onValueChange = { lossStop = it },
+                    label = { Text("Daily Loss Stop ($)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = profitStop,
+                    onValueChange = { profitStop = it },
+                    label = { Text("Daily Profit Stop ($)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onSave(
-                    DisciplineSettings(
-                        maxTradesPerSession = maxTrades.toIntOrNull() ?: current.maxTradesPerSession,
-                        dailyProfitStop = profitStop.toDoubleOrNull() ?: current.dailyProfitStop,
-                        dailyLossStop = lossStop.toDoubleOrNull() ?: current.dailyLossStop,
+            Button(
+                onClick = {
+                    val newSettings = DisciplineSettings(
+                        maxTradesPerSession = maxTrades.toIntOrNull() ?: 3,
+                        dailyLossStop = lossStop.toDoubleOrNull() ?: 50.0,
+                        dailyProfitStop = profitStop.toDoubleOrNull() ?: 100.0,
                         autoSyncBalance = autoSync
                     )
-                )
-            }) {
-                Text("Save")
+                    onSave(newSettings)
+                }
+            ) {
+                Text("Save Rules")
             }
         },
         dismissButton = {
@@ -880,58 +1340,56 @@ private fun EditDisciplineDialog(
 }
 
 @Composable
-private fun EditCalculatorDialog(
+fun EditCalculatorDialog(
     current: CalculatorSettings,
     onSave: (CalculatorSettings) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var risk by remember { mutableStateOf(current.defaultRiskPercent.toString().removeSuffix(".0")) }
-    var contractSize by remember { mutableStateOf(current.contractSize.toString().removeSuffix(".0")) }
-    var lotStep by remember { mutableStateOf(current.defaultLotStep) }
-    var roundingMode by remember { mutableStateOf(current.roundingMode) }
+    var defaultRisk by remember { mutableStateOf(current.defaultRiskPercent.toString()) }
+    var defaultSize by remember { mutableStateOf(current.defaultAccountSize.toInt().toString()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Calculator Settings") },
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Calculator Defaults")
+            }
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(value = risk, onValueChange = { risk = it }, label = { Text("Default Risk %") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
-                OutlinedTextField(value = contractSize, onValueChange = { contractSize = it }, label = { Text("Contract Size (oz / 1.0 lot)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), singleLine = true)
+                OutlinedTextField(
+                    value = defaultSize,
+                    onValueChange = { defaultSize = it },
+                    label = { Text("Default Calculator Balance ($)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                Text("Broker Lot Step:", fontSize = 12.sp, color = TvSilver)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    LotStep.entries.forEach { s ->
-                        FilterChip(
-                            selected = lotStep == s,
-                            onClick = { lotStep = s },
-                            label = { Text(s.displayName) }
-                        )
-                    }
-                }
-
-                Text("Rounding Mode:", fontSize = 12.sp, color = TvSilver)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    LotRoundingMode.entries.forEach { m ->
-                        FilterChip(
-                            selected = roundingMode == m,
-                            onClick = { roundingMode = m },
-                            label = { Text(m.displayName) }
-                        )
-                    }
-                }
+                OutlinedTextField(
+                    value = defaultRisk,
+                    onValueChange = { defaultRisk = it },
+                    label = { Text("Default Risk %") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
-            Button(onClick = {
-                onSave(
-                    CalculatorSettings(
-                        defaultRiskPercent = risk.toDoubleOrNull() ?: current.defaultRiskPercent,
-                        defaultLotStep = lotStep,
-                        contractSize = contractSize.toDoubleOrNull() ?: current.contractSize,
-                        roundingMode = roundingMode
+            Button(
+                onClick = {
+                    val updated = current.copy(
+                        defaultAccountSize = defaultSize.toDoubleOrNull() ?: 5000.0,
+                        defaultRiskPercent = defaultRisk.toDoubleOrNull() ?: 1.0
                     )
-                )
-            }) {
+                    onSave(updated)
+                }
+            ) {
                 Text("Save")
             }
         },
@@ -939,41 +1397,4 @@ private fun EditCalculatorDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
-}
-
-@androidx.compose.ui.tooling.preview.Preview(name = "PropScholar Account & Discipline Guard", showBackground = true)
-@Composable
-fun AccountScreenPreview() {
-    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
-        AccountScreenContent(
-            uiState = AccountUiState(
-                propFirmSettings = PropFirmSettings(
-                    name = "PropScholar Freedom 5K",
-                    startingBalance = 5000.0,
-                    profitTargetPercent = 8.0,
-                    maxLossPercent = 6.0,
-                    dailyLossPercent = 3.0,
-                    maxGoldVolumeLots = 0.20
-                ),
-                disciplineSettings = DisciplineSettings(
-                    maxTradesPerSession = 4,
-                    dailyProfitStop = 150.0,
-                    dailyLossStop = 100.0,
-                    autoSyncBalance = true
-                ),
-                calculatorSettings = CalculatorSettings(
-                    defaultRiskPercent = 1.0,
-                    defaultLotStep = LotStep.STEP_0_01,
-                    contractSize = 100.0,
-                    roundingMode = LotRoundingMode.ROUND_DOWN
-                ),
-                currentBalance = 5285.50,
-                todayTradesCount = 2,
-                todayPnl = 85.50,
-                isSessionLimitExceeded = false,
-                isDailyLossStopExceeded = false,
-                isDailyProfitStopReached = false
-            )
-        )
-    }
 }

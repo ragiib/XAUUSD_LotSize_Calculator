@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -29,6 +30,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -70,10 +72,11 @@ import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import java.io.File
 import java.text.DecimalFormat
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun TradeDetailBottomSheet(
     trade: Trade,
+    accountName: String? = null,
     sheetState: SheetState,
     onDismiss: () -> Unit,
     onEdit: (Trade) -> Unit,
@@ -96,7 +99,28 @@ fun TradeDetailBottomSheet(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header Bar: Symbol & Direction, Date, Status
+            // Visible Back Navigation Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Trade Details",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Header Bar: Symbol & Direction, Account Badge, Date, Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -106,15 +130,32 @@ fun TradeDetailBottomSheet(
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = if (trade.direction == TradeDirection.BUY) TvBuyColor else TvSilver.copy(alpha = 0.2f),
-                        modifier = Modifier.padding(end = 8.dp)
+                        modifier = Modifier.padding(end = 6.dp)
                     ) {
                         Text(
                             text = "${trade.symbol} • ${trade.direction.name}",
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (trade.direction == TradeDirection.BUY) Color.White else TvLightGrey,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
+                    }
+
+                    if (!accountName.isNullOrBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = TvPlumContainer,
+                            border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                            modifier = Modifier.padding(end = 6.dp)
+                        ) {
+                            Text(
+                                text = accountName,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TvPurpleGlow,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
                     Surface(
@@ -124,9 +165,9 @@ fun TradeDetailBottomSheet(
                     ) {
                         Text(
                             text = trade.setup,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TvPurpleGlow,
+                            color = TvSilverBright,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                         )
                     }
@@ -300,7 +341,7 @@ fun TradeDetailBottomSheet(
                             )
                         }
                         Text(
-                            text = trade.mistakes.filter { it != "No mistake" }.joinToString(", "),
+                            text = trade.mistakes.filter { !it.equals("No Mistake", ignoreCase = true) }.joinToString(", "),
                             fontSize = 13.sp,
                             color = TvSilverBright
                         )

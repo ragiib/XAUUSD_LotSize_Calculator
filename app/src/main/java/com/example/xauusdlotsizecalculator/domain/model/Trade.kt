@@ -22,6 +22,7 @@ enum class SetupQuality(val stars: String, val displayName: String) {
 
 data class Trade(
     val id: Long = 0,
+    val accountId: Long = 1L,
     val dateEpochMs: Long = System.currentTimeMillis(),
     val symbol: String = "XAUUSD",
     val direction: TradeDirection = TradeDirection.BUY,
@@ -40,7 +41,7 @@ data class Trade(
     val rMultiple: Double? = null,
     val setup: String = "Liquidity Sweep",
     val setupQuality: SetupQuality = SetupQuality.A_PLUS,
-    val mistakes: List<String> = listOf("No mistake"),
+    val mistakes: List<String> = listOf("No Mistake"),
     val emotionBefore: String = "Calm",
     val emotionAfter: String = "Calm",
     val thinkingNotes: String = "",
@@ -62,7 +63,7 @@ data class Trade(
         get() = status != TradeStatus.OPEN
 
     val hasMistake: Boolean
-        get() = mistakes.any { it != "No mistake" }
+        get() = mistakes.any { !it.equals("No Mistake", ignoreCase = true) }
 }
 
 val DEFAULT_SETUPS = listOf(
@@ -78,24 +79,25 @@ val DEFAULT_SETUPS = listOf(
 )
 
 val DEFAULT_MISTAKES = listOf(
-    "No mistake",
-    "Wrong lot size",
+    "No Mistake",
+    "Tight SL",
+    "Wrong Lot Size",
     "FOMO",
-    "Revenge trading",
+    "Revenge Trading",
     "Overtrading",
-    "Entered too early",
-    "Entered too late",
-    "No confirmation",
-    "Ignored setup",
+    "Entered Too Early",
+    "Entered Too Late",
+    "No Confirmation",
+    "Ignored Setup",
     "Moved SL",
     "Moved TP",
-    "Closed too early",
-    "Held too long",
-    "Averaged losing trade",
+    "Closed Too Early",
+    "Held Too Long",
+    "Averaged Losing Position",
     "Martingale",
-    "Traded after planned stop",
-    "Emotional decision",
-    "Broke prop-firm rule",
+    "Traded After Planned Stop",
+    "Emotional Decision",
+    "Broke Prop Rule",
     "Other"
 )
 
