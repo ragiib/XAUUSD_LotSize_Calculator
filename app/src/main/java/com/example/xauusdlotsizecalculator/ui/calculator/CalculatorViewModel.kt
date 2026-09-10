@@ -20,6 +20,7 @@ import com.example.xauusdlotsizecalculator.domain.model.ValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -55,10 +56,15 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     private fun observeAccounts() {
         viewModelScope.launch {
-            repository.accounts.collect { accounts ->
+            combine(
+                repository.accounts,
+                repository.selectedAccountId
+            ) { accounts, selectedId ->
+                Pair(accounts, selectedId)
+            }.collect { (accounts, selectedId) ->
                 if (accounts.isNotEmpty()) {
-                    val currentSelectedId = _uiState.value.selectedAccountId
-                    val selectedAcc = accounts.firstOrNull { it.id == currentSelectedId } ?: accounts.first()
+                    val activeId = selectedId ?: accounts.first().id
+                    val selectedAcc = accounts.firstOrNull { it.id == activeId } ?: accounts.first()
                     
                     val prop = PropFirmSettings(
                         enabled = selectedAcc.isPropFirm,
@@ -71,9 +77,16 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
                         leverage = selectedAcc.leverage
                     )
 
+                    val balFormatted = if (selectedAcc.currentBalance % 1.0 == 0.0) {
+                        selectedAcc.currentBalance.toInt().toString()
+                    } else {
+                        DecimalFormat("#.##").format(selectedAcc.currentBalance)
+                    }
+
                     _uiState.update { it.copy(
                         availableAccounts = accounts,
                         selectedAccountId = selectedAcc.id,
+                        balanceInput = balFormatted,
                         propFirmSettings = prop
                     )}
                     calculateIfValid()
@@ -83,23 +96,7 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun onSelectAccount(accountId: Long) {
-        val accounts = _uiState.value.availableAccounts
-        val acc = accounts.firstOrNull { it.id == accountId } ?: return
-        val prop = PropFirmSettings(
-            enabled = acc.isPropFirm,
-            name = acc.name,
-            startingBalance = acc.startingBalance,
-            profitTargetPercent = acc.profitTargetPercent,
-            maxLossPercent = acc.maxLossPercent,
-            dailyLossPercent = acc.dailyLossPercent,
-            maxGoldVolumeLots = acc.maxGoldLots,
-            leverage = acc.leverage
-        )
-        _uiState.update { it.copy(
-            selectedAccountId = accountId,
-            propFirmSettings = prop
-        )}
-        calculateIfValid()
+        repository.selectAccount(accountId)
     }
 
     fun onPairChange(pair: String) {
@@ -149,11 +146,33 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
 
     fun onTpPriceChange(value: String) {
         _uiState.update { it.copy(tpPriceInput = value) }
+        val entry = XauusdLotCalculator.parseDecimal(_uiState.value.entryPriceInput)
+        val tpPr = XauusdLotCalculator.parseDecimal(value)
+        if (entry != null && tpPr != null && entry > BigDecimal.ZERO && tpPr > BigDecimal.ZERO) {
+            val tpPct = XauusdLotCalculator.calculateTpPercentFromPrice(entry, tpPr)
+            _uiState.update { it.copy(tpPercentInput = DecimalFormat("0.000").format(tpPct.setScale(3, RoundingMode.HALF_UP))) }
+        }
+        calculateIfValid()
+    }
+
+    fun onTpPercentChange(value: String) {
+        _uiState.update { it.copy(tpPercentInput = value) }
+        val entry = XauusdLotCalculator.parseDecimal(_uiState.value.entryPriceInput)
+        val tpPct = XauusdLotCalculator.parseDecimal(value)
+        if (entry != null && tpPct != null && entry > BigDecimal.ZERO && tpPct >= BigDecimal.ZERO) {
+            val tpPr = XauusdLotCalculator.calculateTpPrice(entry, tpPct, _uiState.value.direction)
+            _uiState.update { it.copy(tpPriceInput = DecimalFormat("#,##0.000").format(tpPr.setScale(3, RoundingMode.HALF_UP)).replace(",", "")) }
+        }
         calculateIfValid()
     }
 
     fun onSlModeChange(mode: SlInputMode) {
         _uiState.update { it.copy(slMode = mode) }
+        calculateIfValid()
+    }
+
+    fun onTpModeChange(mode: SlInputMode) {
+        _uiState.update { it.copy(tpMode = mode) }
         calculateIfValid()
     }
 
@@ -165,6 +184,11 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
             val dist = XauusdLotCalculator.calculateSlDistance(entry, slPct)
             val slPr = XauusdLotCalculator.calculateSlPrice(entry, dist, direction)
             _uiState.update { it.copy(slPriceInput = DecimalFormat("#,##0.000").format(slPr.setScale(3, RoundingMode.HALF_UP)).replace(",", "")) }
+        }
+        val tpPct = XauusdLotCalculator.parseDecimal(_uiState.value.tpPercentInput)
+        if (entry != null && tpPct != null && entry > BigDecimal.ZERO) {
+            val tpPr = XauusdLotCalculator.calculateTpPrice(entry, tpPct, direction)
+            _uiState.update { it.copy(tpPriceInput = DecimalFormat("#,##0.000").format(tpPr.setScale(3, RoundingMode.HALF_UP)).replace(",", "")) }
         }
         calculateIfValid()
     }
@@ -202,6 +226,20 @@ class CalculatorViewModel(application: Application) : AndroidViewModel(applicati
                 val dist = XauusdLotCalculator.calculateSlDistanceFromPrice(entry, slPr)
                 val slPct = XauusdLotCalculator.calculateSlPercentFromDistance(entry, dist)
                 _uiState.update { it.copy(slPercentInput = DecimalFormat("0.000").format(slPct.setScale(3, RoundingMode.HALF_UP))) }
+            }
+        }
+
+        if (state.tpMode == SlInputMode.PERCENT) {
+            val tpPct = XauusdLotCalculator.parseDecimal(state.tpPercentInput)
+            if (tpPct != null && tpPct >= BigDecimal.ZERO) {
+                val tpPr = XauusdLotCalculator.calculateTpPrice(entry, tpPct, state.direction)
+                _uiState.update { it.copy(tpPriceInput = DecimalFormat("#,##0.000").format(tpPr.setScale(3, RoundingMode.HALF_UP)).replace(",", "")) }
+            }
+        } else {
+            val tpPr = XauusdLotCalculator.parseDecimal(state.tpPriceInput)
+            if (tpPr != null && tpPr > BigDecimal.ZERO) {
+                val tpPct = XauusdLotCalculator.calculateTpPercentFromPrice(entry, tpPr)
+                _uiState.update { it.copy(tpPercentInput = DecimalFormat("0.000").format(tpPct.setScale(3, RoundingMode.HALF_UP))) }
             }
         }
     }

@@ -1,9 +1,9 @@
 package com.example.xauusdlotsizecalculator.domain.model
 
 enum class DayPerformanceStatus(val label: String, val emoji: String) {
-    POSITIVE("Positive Day", "🟢"),
-    NEGATIVE("Negative Day", "🔴"),
-    NO_TRADES("No Trades", "⚪")
+    POSITIVE("Positive Day", "▲"),
+    NEGATIVE("Negative Day", "▼"),
+    NO_TRADES("No Trades", "—")
 }
 
 data class DailyPerformance(

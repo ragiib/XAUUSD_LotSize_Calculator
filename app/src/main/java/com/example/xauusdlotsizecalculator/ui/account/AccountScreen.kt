@@ -85,16 +85,20 @@ import com.example.xauusdlotsizecalculator.data.database.AccountCalculatedStats
 import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.CalculatorSettings
 import com.example.xauusdlotsizecalculator.domain.model.DisciplineSettings
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvGoldAccent
-import com.example.xauusdlotsizecalculator.theme.TvGreenProfit
+import com.example.xauusdlotsizecalculator.theme.TvWinColor
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
-import com.example.xauusdlotsizecalculator.theme.TvRedLoss
+import com.example.xauusdlotsizecalculator.theme.TvLossColor
+import com.example.xauusdlotsizecalculator.theme.TvLossContainer
+import com.example.xauusdlotsizecalculator.theme.TvLossContainerBorder
+import com.example.xauusdlotsizecalculator.theme.TvWinContainer
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import com.example.xauusdlotsizecalculator.theme.TvWarning
@@ -356,7 +360,7 @@ fun AccountScreenContent(
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(Icons.Default.Add, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("+ Add New Account", fontWeight = FontWeight.Bold, color = TvPurpleGlow)
+                                        Text("Add New Account", fontWeight = FontWeight.Bold, color = TvPurpleGlow)
                                     }
                                 },
                                 onClick = {
@@ -385,7 +389,7 @@ fun AccountScreenContent(
                                 .size(44.dp)
                                 .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Account", tint = TvRedLoss)
+                            Icon(Icons.Default.Delete, contentDescription = "Delete Account", tint = TvLossColor)
                         }
                     }
                 }
@@ -486,7 +490,7 @@ private fun AccountDashboardCard(
 ) {
     val acc = stats.account
     val pnl = stats.totalPnl
-    val pnlColor = if (pnl > 0) TvGreenProfit else if (pnl < 0) TvRedLoss else TvSilver
+    val pnlColor = if (pnl > 0) TvWinColor else if (pnl < 0) TvLossColor else TvSilver
     val pnlSign = if (pnl > 0) "+" else if (pnl < 0) "-" else ""
     val pnlPct = if (acc.startingBalance > 0) (pnl / acc.startingBalance) * 100.0 else 0.0
 
@@ -571,7 +575,7 @@ private fun AccountDashboardCard(
                 )
 
                 val todayPnl = stats.todayPnl
-                val todayColor = if (todayPnl > 0) TvGreenProfit else if (todayPnl < 0) TvRedLoss else TvSilver
+                val todayColor = if (todayPnl > 0) TvWinColor else if (todayPnl < 0) TvLossColor else TvSilver
                 val todaySign = if (todayPnl > 0) "+" else if (todayPnl < 0) "-" else ""
                 MetricBox(
                     label = "Today's P/L",
@@ -608,7 +612,7 @@ private fun AccountDashboardCard(
                                 text = if (stats.isTargetReached) "Target Achieved! ✓" else "${acc.currency}${DecimalFormat("#,##0.00").format(stats.profitTargetRemainingAmount)} remaining",
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (stats.isTargetReached) TvGreenProfit else TvSilverBright
+                                color = if (stats.isTargetReached) TvWinColor else TvSilverBright
                             )
                         }
                         LinearProgressIndicator(
@@ -617,7 +621,7 @@ private fun AccountDashboardCard(
                                 .fillMaxWidth()
                                 .height(8.dp)
                                 .clip(RoundedCornerShape(4.dp)),
-                            color = TvGreenProfit,
+                            color = TvWinColor,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     }
@@ -637,7 +641,7 @@ private fun AccountDashboardCard(
                                 text = "${acc.currency}${DecimalFormat("#,##0.00").format(stats.maxLossRemainingAmount)} left",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (stats.isMaxLossLimitExceeded) TvRedLoss else TvSilverBright
+                                color = if (stats.isMaxLossLimitExceeded) TvLossColor else TvSilverBright
                             )
                         }
 
@@ -651,7 +655,7 @@ private fun AccountDashboardCard(
                                 text = "${acc.currency}${DecimalFormat("#,##0.00").format(stats.dailyLossRemainingAmount)} left",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (stats.isDailyLossLimitExceeded) TvRedLoss else TvSilverBright
+                                color = if (stats.isDailyLossLimitExceeded) TvLossColor else TvSilverBright
                             )
                         }
                     }
@@ -908,39 +912,144 @@ private fun SettingsSection(
                 }
             }
 
-            // Export / Import Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onExportCsv,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f)
+            // Data Backup & Export Settings List
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Export CSV Row
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onExportCsv)
                 ) {
-                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Export CSV", fontSize = 11.sp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.FileDownload,
+                                contentDescription = null,
+                                tint = TvPurpleGlow,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Export CSV",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TvSilverBright
+                                )
+                                Text(
+                                    text = "Spreadsheet compatible format",
+                                    fontSize = 11.sp,
+                                    color = TvSilver
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = TvSilver,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
-                OutlinedButton(
-                    onClick = onExportJson,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f)
+                // Backup Database (JSON)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onExportJson)
                 ) {
-                    Icon(Icons.Default.FileDownload, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Backup JSON", fontSize = 11.sp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.FileDownload,
+                                contentDescription = null,
+                                tint = TvPurpleGlow,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Backup Database",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TvSilverBright
+                                )
+                                Text(
+                                    text = "Full JSON backup of trades and accounts",
+                                    fontSize = 11.sp,
+                                    color = TvSilver
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = TvSilver,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
 
-                OutlinedButton(
-                    onClick = onImportJson,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f)
+                // Restore Database (JSON)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onImportJson)
                 ) {
-                    Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Restore", fontSize = 11.sp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.FileUpload,
+                                contentDescription = null,
+                                tint = TvPurpleGlow,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Restore Database",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TvSilverBright
+                                )
+                                Text(
+                                    text = "Import trades from a JSON backup",
+                                    fontSize = 11.sp,
+                                    color = TvSilver
+                                )
+                            }
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = TvSilver,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -1191,7 +1300,7 @@ fun DeleteAccountDialog(
                         onClick = { selectedChoice = "DELETE" }
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Delete associated trades permanently", fontSize = 13.sp, color = TvRedLoss)
+                    Text("Delete associated trades permanently", fontSize = 13.sp, color = TvLossColor)
                 }
             }
         },
@@ -1201,7 +1310,7 @@ fun DeleteAccountDialog(
                     val moveTo = if (selectedChoice == "MOVE") targetAccountId else null
                     onConfirmDelete(moveTo)
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = TvRedLoss)
+                colors = ButtonDefaults.buttonColors(containerColor = TvLossContainer, contentColor = TvLossColor)
             ) {
                 Text("Delete Account")
             }

@@ -45,27 +45,38 @@ val TvTextPrimary = Color(0xFFF9FAFB)
 val TvTextSecondary = Color(0xFF9CA3AF)
 val TvTextMuted = Color(0xFF6B7280)
 
-// Trading Performance & Badge Colors
-val TvGreenProfit = Color(0xFF10B981)      // Emerald Green for Wins / Profits
-val TvGreenContainer = Color(0xFF07271E)   // Deep Emerald Container
-val TvGreenContainerBorder = Color(0xFF065F46)
-val TvGreenText = Color(0xFF34D399)
+// Trading Performance & Badge Colors (Purple for Positive/Buy/Win, Light Gray for Negative/Sell/Loss)
+val TvWinColor = Color(0xFFC084FC)         // Soft Lilac / Purple for Wins & Profits
+val TvWinContainer = Color(0xFF230826)     // Deep Plum Container
+val TvWinContainerBorder = Color(0xFF45104B) // Subtle Plum Border
+val TvWinText = Color(0xFFD8B4FE)          // Crisp Violet Text
 
-val TvRedLoss = Color(0xFFEF4444)          // Crimson for Losses
-val TvRedContainer = Color(0xFF2C0B0E)     // Deep Crimson Container
-val TvRedContainerBorder = Color(0xFF7F1D1D)
-val TvRedText = Color(0xFFF87171)
+val TvLossColor = Color(0xFFE5E7EB)        // Crisp Light Gray for Losses & Sells
+val TvLossContainer = Color(0xFF1F242C)    // Dark Charcoal Container
+val TvLossContainerBorder = Color(0xFF374151) // Charcoal Border
+val TvLossText = Color(0xFFD1D5DB)         // Light Gray Text
+
+// Backwards-compatible aliases remapped to Purple and Light Gray (Zero Green / Zero Red)
+val TvGreenProfit = TvWinColor
+val TvGreenContainer = TvWinContainer
+val TvGreenContainerBorder = TvWinContainerBorder
+val TvGreenText = TvWinText
+
+val TvRedLoss = TvLossColor
+val TvRedContainer = TvLossContainer
+val TvRedContainerBorder = TvLossContainerBorder
+val TvRedText = TvLossText
 
 val TvBreakeven = Color(0xFF9CA3AF)        // Neutral Silver for Breakeven
 val TvBreakevenContainer = Color(0xFF1F242C)
 
-val TvWarning = Color(0xFFF59E0B)          // Amber for Prop Warnings & Limits
-val TvWarningContainer = Color(0xFF2B1804)
-val TvWarningContainerBorder = Color(0xFF78350F)
-val TvWarningText = Color(0xFFFBBF24)
+val TvWarning = Color(0xFFC084FC)          // Purple styling for warnings (no red)
+val TvWarningContainer = Color(0xFF230826)
+val TvWarningContainerBorder = Color(0xFF45104B)
+val TvWarningText = Color(0xFFD8B4FE)
 
-val TvGoldAccent = Color(0xFFEAB308)       // Gold rating / stars
-val TvGoldBadgeContainer = Color(0xFF2E2204)
+val TvGoldAccent = Color(0xFFC084FC)       // Purple accent for stars / quality
+val TvGoldBadgeContainer = Color(0xFF230826)
 
 // Light fallback
 val TvLightBackground = Color(0xFFF8FAFC)

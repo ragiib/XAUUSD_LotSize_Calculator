@@ -50,16 +50,16 @@ import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
 import com.example.xauusdlotsizecalculator.theme.TvBreakeven
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvGoldAccent
-import com.example.xauusdlotsizecalculator.theme.TvGreenContainer
-import com.example.xauusdlotsizecalculator.theme.TvGreenContainerBorder
-import com.example.xauusdlotsizecalculator.theme.TvGreenProfit
+import com.example.xauusdlotsizecalculator.theme.TvWinColor
+import com.example.xauusdlotsizecalculator.theme.TvWinContainer
+import com.example.xauusdlotsizecalculator.theme.TvWinContainerBorder
+import com.example.xauusdlotsizecalculator.theme.TvLossColor
+import com.example.xauusdlotsizecalculator.theme.TvLossContainer
+import com.example.xauusdlotsizecalculator.theme.TvLossContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
-import com.example.xauusdlotsizecalculator.theme.TvRedContainer
-import com.example.xauusdlotsizecalculator.theme.TvRedContainerBorder
-import com.example.xauusdlotsizecalculator.theme.TvRedLoss
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import java.text.DecimalFormat
@@ -100,15 +100,12 @@ fun AnalyticsScreenContent(
     summary: com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary,
     accounts: List<Account> = emptyList(),
     selectedAccountId: Long? = null,
-    onSelectAccountFilter: (Long?) -> Unit = {},
+    onSelectAccountFilter: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var accountDropdownExpanded by remember { mutableStateOf(false) }
-    val selectedAccountName = if (selectedAccountId != null) {
-        accounts.firstOrNull { it.id == selectedAccountId }?.name ?: "Selected Account"
-    } else {
-        "All Accounts"
-    }
+    val currentAccount = accounts.firstOrNull { it.id == selectedAccountId } ?: accounts.firstOrNull()
+    val selectedAccountName = currentAccount?.name ?: "Select Account"
 
     Scaffold(
         topBar = {
@@ -208,18 +205,6 @@ fun AnalyticsScreenContent(
                     expanded = accountDropdownExpanded,
                     onDismissRequest = { accountDropdownExpanded = false }
                 ) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = "All Accounts",
-                                fontWeight = if (selectedAccountId == null) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        onClick = {
-                            onSelectAccountFilter(null)
-                            accountDropdownExpanded = false
-                        }
-                    )
                     accounts.forEach { acc ->
                         DropdownMenuItem(
                             text = {
@@ -258,8 +243,8 @@ fun AnalyticsScreenContent(
 private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary) {
     val daily = summary.dailyPerformance
     val (statusColor, containerColor, borderColor) = when (daily.status) {
-        DayPerformanceStatus.POSITIVE -> Triple(TvGreenProfit, TvGreenContainer, TvGreenContainerBorder)
-        DayPerformanceStatus.NEGATIVE -> Triple(TvRedLoss, TvRedContainer, TvRedContainerBorder)
+        DayPerformanceStatus.POSITIVE -> Triple(TvWinColor, TvWinContainer, TvWinContainerBorder)
+        DayPerformanceStatus.NEGATIVE -> Triple(TvLossColor, TvLossContainer, TvLossContainerBorder)
         DayPerformanceStatus.NO_TRADES -> Triple(TvSilver, MaterialTheme.colorScheme.surfaceVariant, TvDarkSurfaceBorder)
     }
 
@@ -378,7 +363,7 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TvGreenProfit
+                                color = TvWinColor
                             )
                         }
 
@@ -389,7 +374,7 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
                                 fontSize = 11.sp,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.SemiBold,
-                                color = if (w < 0) TvRedLoss else TvSilver
+                                color = if (w < 0) TvLossColor else TvSilver
                             )
                         }
                     }
@@ -437,7 +422,7 @@ private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.m
             ) {
                 val netPnl = summary.netProfitLoss
                 val netSign = if (netPnl > 0) "+" else if (netPnl < 0) "-" else ""
-                val netColor = if (netPnl > 0) TvGreenProfit else if (netPnl < 0) TvRedLoss else TvSilver
+                val netColor = if (netPnl > 0) TvWinColor else if (netPnl < 0) TvLossColor else TvSilver
 
                 KpiMetricItem(
                     label = "Net Profit / Loss",
@@ -474,7 +459,7 @@ private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.m
                     label = "Average R",
                     value = "$avgRSign${DecimalFormat("#0.00").format(Math.abs(avgR))}R",
                     subValue = "Expectancy per trade",
-                    valueColor = if (avgR > 0) TvGreenProfit else if (avgR < 0) TvRedLoss else TvSilver,
+                    valueColor = if (avgR > 0) TvWinColor else if (avgR < 0) TvLossColor else TvSilver,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -488,7 +473,7 @@ private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.m
                     label = "Avg Win",
                     value = "+$${DecimalFormat("#,##0.00").format(summary.averageWin)}",
                     subValue = "Largest: +$${DecimalFormat("#,##0.00").format(summary.largestWin)}",
-                    valueColor = TvGreenProfit,
+                    valueColor = TvWinColor,
                     modifier = Modifier.weight(1f)
                 )
 
@@ -496,7 +481,7 @@ private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.m
                     label = "Avg Loss",
                     value = "-$${DecimalFormat("#,##0.00").format(summary.averageLoss)}",
                     subValue = "Largest: -$${DecimalFormat("#,##0.00").format(summary.largestLoss)}",
-                    valueColor = TvRedLoss,
+                    valueColor = TvLossColor,
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -548,7 +533,7 @@ private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
             } else {
                 setups.forEachIndexed { index, s ->
                     val pnlSign = if (s.netProfitLoss > 0) "+" else if (s.netProfitLoss < 0) "-" else ""
-                    val pnlColor = if (s.netProfitLoss > 0) TvGreenProfit else if (s.netProfitLoss < 0) TvRedLoss else TvSilver
+                    val pnlColor = if (s.netProfitLoss > 0) TvWinColor else if (s.netProfitLoss < 0) TvLossColor else TvSilver
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
@@ -575,13 +560,13 @@ private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = TvGoldAccent.copy(alpha = 0.2f)
+                                            color = TvWinContainer
                                         ) {
                                             Text(
                                                 text = "TOP EDGE",
                                                 fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold,
-                                                color = TvGoldAccent,
+                                                color = TvWinColor,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                             )
                                         }
@@ -638,7 +623,7 @@ private fun MistakeImpactSection(mistakes: List<MistakeImpact>) {
                 Icon(
                     imageVector = Icons.Default.WarningAmber,
                     contentDescription = null,
-                    tint = TvRedLoss,
+                    tint = TvPurpleGlow,
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -660,14 +645,14 @@ private fun MistakeImpactSection(mistakes: List<MistakeImpact>) {
             if (mistakes.isEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = TvGreenContainer,
-                    border = BorderStroke(1.dp, TvGreenContainerBorder),
+                    color = TvWinContainer,
+                    border = BorderStroke(1.dp, TvWinContainerBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "🎉 Zero repeated mistakes recorded! Keep up the disciplined execution.",
                         fontSize = 12.sp,
-                        color = TvGreenProfit,
+                        color = TvWinColor,
                         modifier = Modifier.padding(12.dp)
                     )
                 }
@@ -698,7 +683,7 @@ private fun MistakeImpactSection(mistakes: List<MistakeImpact>) {
                                 fontSize = 12.sp,
                                 fontFamily = FontFamily.Monospace,
                                 fontWeight = FontWeight.SemiBold,
-                                color = TvRedLoss
+                                color = TvLossColor
                             )
                         }
 
@@ -710,8 +695,8 @@ private fun MistakeImpactSection(mistakes: List<MistakeImpact>) {
                                 .fillMaxWidth()
                                 .height(6.dp)
                                 .clip(RoundedCornerShape(3.dp)),
-                            color = TvRedLoss,
-                            trackColor = TvRedContainer
+                            color = TvPurplePrimary,
+                            trackColor = TvLossContainer
                         )
                     }
                 }

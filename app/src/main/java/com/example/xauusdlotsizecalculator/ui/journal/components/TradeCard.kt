@@ -39,17 +39,17 @@ import com.example.xauusdlotsizecalculator.theme.TvBreakevenContainer
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvGoldAccent
-import com.example.xauusdlotsizecalculator.theme.TvGreenContainer
-import com.example.xauusdlotsizecalculator.theme.TvGreenContainerBorder
-import com.example.xauusdlotsizecalculator.theme.TvGreenProfit
 import com.example.xauusdlotsizecalculator.theme.TvLightGrey
+import com.example.xauusdlotsizecalculator.theme.TvLossColor
+import com.example.xauusdlotsizecalculator.theme.TvLossContainer
+import com.example.xauusdlotsizecalculator.theme.TvLossContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
-import com.example.xauusdlotsizecalculator.theme.TvRedContainer
-import com.example.xauusdlotsizecalculator.theme.TvRedContainerBorder
-import com.example.xauusdlotsizecalculator.theme.TvRedLoss
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
+import com.example.xauusdlotsizecalculator.theme.TvWinColor
+import com.example.xauusdlotsizecalculator.theme.TvWinContainer
+import com.example.xauusdlotsizecalculator.theme.TvWinContainerBorder
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -68,8 +68,8 @@ fun TradeCard(
 
     val (pnlColor, pnlContainer, pnlBorder) = when {
         isOpen -> Triple(TvPurpleGlow, TvPlumContainer, TvDarkSurfaceBorder)
-        isWin -> Triple(TvGreenProfit, TvGreenContainer, TvGreenContainerBorder)
-        isLoss -> Triple(TvRedLoss, TvRedContainer, TvRedContainerBorder)
+        isWin -> Triple(TvWinColor, TvWinContainer, TvWinContainerBorder)
+        isLoss -> Triple(TvLossColor, TvLossContainer, TvLossContainerBorder)
         else -> Triple(TvBreakeven, TvBreakevenContainer, TvDarkSurfaceBorder)
     }
 
@@ -283,14 +283,14 @@ fun TradeCard(
                     actualMistakes.forEach { mistake ->
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = TvRedContainer,
-                            border = BorderStroke(1.dp, TvRedContainerBorder)
+                            color = TvLossContainer,
+                            border = BorderStroke(1.dp, TvLossContainerBorder)
                         ) {
                             Text(
                                 text = mistake,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = TvRedLoss,
+                                color = TvLossColor,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }

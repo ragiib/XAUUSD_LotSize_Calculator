@@ -80,8 +80,12 @@ fun CalculatorInputs(
     onSlPriceChange: (String) -> Unit,
     tpPrice: String,
     onTpPriceChange: (String) -> Unit,
+    tpPercent: String = "0.472",
+    onTpPercentChange: (String) -> Unit = {},
     slMode: SlInputMode,
     onSlModeChange: (SlInputMode) -> Unit,
+    tpMode: SlInputMode = SlInputMode.PRICE,
+    onTpModeChange: (SlInputMode) -> Unit = {},
     selectedLotStep: LotStep,
     onLotStepChange: (LotStep) -> Unit,
     validation: ValidationResult,
@@ -353,14 +357,69 @@ fun CalculatorInputs(
                 }
             }
 
-            // Section 5: Take Profit Price (Optional)
-            TradingInputField(
-                value = tpPrice,
-                onValueChange = onTpPriceChange,
-                label = "Take Profit Price (Optional)",
-                placeholder = "2662.50",
-                onClear = { onTpPriceChange("") }
-            )
+            // Section 5: Take Profit Input (Toggle between Price and %)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Take Profit (Optional)",
+                        fontSize = 12.sp,
+                        color = TvSilver,
+                        fontWeight = FontWeight.Medium
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        FilterChip(
+                            selected = tpMode == SlInputMode.PRICE,
+                            onClick = { onTpModeChange(SlInputMode.PRICE) },
+                            label = { Text("By Price", fontSize = 11.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TvPlumContainer,
+                                selectedLabelColor = TvPurpleGlow,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = TvSilver
+                            ),
+                            border = if (tpMode == SlInputMode.PRICE) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
+                        )
+                        FilterChip(
+                            selected = tpMode == SlInputMode.PERCENT,
+                            onClick = { onTpModeChange(SlInputMode.PERCENT) },
+                            label = { Text("By %", fontSize = 11.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TvPlumContainer,
+                                selectedLabelColor = TvPurpleGlow,
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                labelColor = TvSilver
+                            ),
+                            border = if (tpMode == SlInputMode.PERCENT) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
+                        )
+                    }
+                }
+
+                if (tpMode == SlInputMode.PRICE) {
+                    TradingInputField(
+                        value = tpPrice,
+                        onValueChange = onTpPriceChange,
+                        label = "TP Price Level",
+                        placeholder = "2662.50",
+                        onClear = { onTpPriceChange("") }
+                    )
+                } else {
+                    TradingInputField(
+                        value = tpPercent,
+                        onValueChange = onTpPercentChange,
+                        label = "TP Distance Percent",
+                        trailingText = "%",
+                        placeholder = "0.472",
+                        onClear = { onTpPercentChange("") }
+                    )
+                }
+            }
 
             // Section 6: Broker Lot Step Selector
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {

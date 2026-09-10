@@ -128,6 +128,37 @@ object XauusdLotCalculator {
     }
 
     /**
+     * Calculate Take Profit price based on Trade Direction and TP Percentage
+     * BUY: Entry Price * (1 + (TP Percentage / 100))
+     * SELL: Entry Price * (1 - (TP Percentage / 100))
+     */
+    fun calculateTpPrice(
+        entryPrice: BigDecimal,
+        tpPercent: BigDecimal,
+        direction: TradeDirection
+    ): BigDecimal {
+        require(entryPrice > BigDecimal.ZERO) { "Entry price must be positive" }
+        require(tpPercent >= BigDecimal.ZERO) { "TP percent cannot be negative" }
+        val tpRatio = tpPercent.divide(ONE_HUNDRED, MATH_CONTEXT)
+        return when (direction) {
+            TradeDirection.BUY -> entryPrice.multiply(BigDecimal.ONE.add(tpRatio, MATH_CONTEXT), MATH_CONTEXT)
+            TradeDirection.SELL -> entryPrice.multiply(BigDecimal.ONE.subtract(tpRatio, MATH_CONTEXT), MATH_CONTEXT)
+        }
+    }
+
+    /**
+     * Calculate TP Percentage from TP Price and Entry Price
+     */
+    fun calculateTpPercentFromPrice(
+        entryPrice: BigDecimal,
+        tpPrice: BigDecimal
+    ): BigDecimal {
+        require(entryPrice > BigDecimal.ZERO) { "Entry price must be positive" }
+        val dist = tpPrice.subtract(entryPrice, MATH_CONTEXT).abs()
+        return dist.multiply(ONE_HUNDRED, MATH_CONTEXT).divide(entryPrice, MATH_CONTEXT)
+    }
+
+    /**
      * Calculate financial trade performance metrics
      * Returns Triple(profitLossAmount, profitLossPercent, rMultiple)
      */

@@ -1,18 +1,25 @@
 package com.example.xauusdlotsizecalculator.ui.journal
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontFamily
+import com.example.xauusdlotsizecalculator.theme.TvLossColor
+import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
+import java.text.DecimalFormat
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -23,6 +30,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DropdownMenu
@@ -80,11 +88,13 @@ fun JournalScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val trades by viewModel.filteredTrades.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
+    val selectedAccountId by viewModel.selectedAccountId.collectAsStateWithLifecycle()
 
     JournalScreenContent(
         uiState = uiState,
         trades = trades,
         accounts = accounts,
+        selectedAccountId = selectedAccountId,
         onAccountFilterSelected = { viewModel.onAccountFilterSelected(it) },
         onResultFilterSelected = { viewModel.onResultFilterSelected(it) },
         onSetupFilterSelected = { viewModel.onSetupFilterSelected(it) },
@@ -108,6 +118,7 @@ fun JournalScreenContent(
     uiState: JournalUiState,
     trades: List<Trade>,
     accounts: List<Account> = emptyList(),
+    selectedAccountId: Long? = 1L,
     onAccountFilterSelected: (Long?) -> Unit = {},
     onResultFilterSelected: (TradeResultFilter) -> Unit,
     onSetupFilterSelected: (String?) -> Unit,
@@ -138,85 +149,70 @@ fun JournalScreenContent(
         }
     }
 
-    val selectedAccountName = if (uiState.selectedAccountFilterId != null) {
-        accounts.firstOrNull { it.id == uiState.selectedAccountFilterId }?.name ?: "Selected Account"
-    } else {
-        "All Accounts"
-    }
+    val activeAccount = accounts.firstOrNull { it.id == selectedAccountId } ?: accounts.firstOrNull()
+    val selectedAccountName = activeAccount?.name ?: "All Accounts"
 
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { if (accounts.isNotEmpty()) showAccountMenu = true }
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(end = 8.dp)
-                        ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                text = "${trades.size}",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                text = "JOURNAL",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.sp,
+                                color = TvSilver
                             )
-                        }
-                        Text(
-                            text = "Trade Journal",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                actions = {
-                    // Account Filter Menu Button
-                    if (accounts.size > 1) {
-                        Box {
-                            IconButton(onClick = { showAccountMenu = true }) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text = selectedAccountName,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp,
+                                    color = TvPurpleGlow
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
-                                    imageVector = Icons.Default.AccountBalance,
-                                    contentDescription = "Filter by Account",
-                                    tint = if (uiState.selectedAccountFilterId != null) TvPurpleGlow else MaterialTheme.colorScheme.onSurfaceVariant
+                                    imageVector = Icons.Default.ArrowDropDown,
+                                    contentDescription = "Switch Account",
+                                    tint = TvPurpleGlow,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
-                            DropdownMenu(
-                                expanded = showAccountMenu,
-                                onDismissRequest = { showAccountMenu = false }
-                            ) {
+                        }
+
+                        DropdownMenu(
+                            expanded = showAccountMenu,
+                            onDismissRequest = { showAccountMenu = false }
+                        ) {
+                            accounts.forEach { acc ->
                                 DropdownMenuItem(
                                     text = {
                                         Text(
-                                            text = "All Accounts",
-                                            fontWeight = if (uiState.selectedAccountFilterId == null) FontWeight.Bold else FontWeight.Normal
+                                            text = acc.name,
+                                            fontWeight = if (selectedAccountId == acc.id) FontWeight.Bold else FontWeight.Normal
                                         )
                                     },
                                     onClick = {
-                                        onAccountFilterSelected(null)
+                                        onAccountFilterSelected(acc.id)
                                         showAccountMenu = false
                                     }
                                 )
-                                accounts.forEach { acc ->
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(
-                                                text = acc.name,
-                                                fontWeight = if (uiState.selectedAccountFilterId == acc.id) FontWeight.Bold else FontWeight.Normal
-                                            )
-                                        },
-                                        onClick = {
-                                            onAccountFilterSelected(acc.id)
-                                            showAccountMenu = false
-                                        }
-                                    )
-                                }
                             }
                         }
                     }
+                },
+                actions = {
 
                     // Sort Menu Button
                     Box {
@@ -299,12 +295,67 @@ fun JournalScreenContent(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // Horizontal Filter Chips: All, Wins, Losses, Breakeven, Open, plus active Account filter tag
+            // Scoped Account Quick Stats Summary
+            val closedTrades = trades.filter { it.isClosed }
+            val totalPnl = closedTrades.sumOf { it.profitLoss ?: 0.0 }
+            val wins = closedTrades.count { it.status == TradeStatus.WIN || (it.profitLoss ?: 0.0) > 0 }
+            val losses = closedTrades.count { it.status == TradeStatus.LOSS || (it.profitLoss ?: 0.0) < 0 }
+            val winRate = if (closedTrades.isNotEmpty()) (wins.toDouble() / closedTrades.size) * 100.0 else 0.0
+            val pnlSign = if (totalPnl > 0) "+" else if (totalPnl < 0) "-" else ""
+            val pnlColor = if (totalPnl > 0) TvPurpleGlow else if (totalPnl < 0) TvLossColor else TvSilver
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("ACCOUNT NET P/L", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TvSilver)
+                        Text(
+                            text = "$pnlSign$${DecimalFormat("#,##0.00").format(Math.abs(totalPnl))}",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = FontFamily.Monospace,
+                            color = pnlColor
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("WIN RATE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TvSilver)
+                        Text(
+                            text = if (closedTrades.isNotEmpty()) "${DecimalFormat("0.0").format(winRate)}%" else "—",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TvPurpleNumber
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("CLOSED TRADES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TvSilver)
+                        Text(
+                            text = "${closedTrades.size} ($wins W • $losses L)",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TvSilverBright
+                        )
+                    }
+                }
+            }
+
+            // Horizontal Filter Chips: All, Wins, Losses, Breakeven, Open
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

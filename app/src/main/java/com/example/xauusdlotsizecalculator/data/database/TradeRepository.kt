@@ -312,8 +312,18 @@ class TradeRepository private constructor(
             )
         }.sortedByDescending { it.netProfitLoss }
 
-        val bestSetup = setupPerformances.firstOrNull()?.setupName
-        val worstSetup = setupPerformances.lastOrNull()?.setupName
+        val bestSetup = when {
+            setupPerformances.isEmpty() -> null
+            setupPerformances.size == 1 -> if (setupPerformances[0].netProfitLoss >= 0.0) setupPerformances[0].setupName else null
+            else -> setupPerformances.first().setupName
+        }
+
+        val worstSetup = when {
+            setupPerformances.isEmpty() -> null
+            setupPerformances.size == 1 -> if (setupPerformances[0].netProfitLoss < 0.0) setupPerformances[0].setupName else null
+            setupPerformances.first().setupName == setupPerformances.last().setupName -> null
+            else -> setupPerformances.last().setupName
+        }
 
         // Mistake Impact (accurately tracking "Tight SL" and all mistakes)
         val mistakeMap = mutableMapOf<String, Pair<Int, Double>>() // Name -> (Count, Loss Impact)

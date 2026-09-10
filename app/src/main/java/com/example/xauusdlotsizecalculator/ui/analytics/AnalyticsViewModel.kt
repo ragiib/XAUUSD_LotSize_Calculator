@@ -18,23 +18,32 @@ class AnalyticsViewModel(application: Application) : AndroidViewModel(applicatio
     private val repository = TradeRepository.getInstance(application)
 
     val accounts: StateFlow<List<Account>> = repository.accounts
+    val selectedAccountId: StateFlow<Long?> = repository.selectedAccountId
 
-    private val _selectedAccountId = MutableStateFlow<Long?>(null) // null = All Accounts
-    val selectedAccountId: StateFlow<Long?> = _selectedAccountId.asStateFlow()
+    init {
+        if (repository.selectedAccountId.value == null) {
+            val first = repository.accounts.value.firstOrNull()
+            if (first != null) {
+                repository.selectAccount(first.id)
+            }
+        }
+    }
 
     val analyticsSummary: StateFlow<AnalyticsSummary> = combine(
         repository.trades,
-        _selectedAccountId
-    ) { allTrades, accountId ->
-        val filtered = if (accountId != null) {
-            allTrades.filter { it.accountId == accountId }
+        repository.selectedAccountId,
+        repository.accounts
+    ) { allTrades, accountId, accList ->
+        val activeId = accountId ?: accList.firstOrNull()?.id
+        val filtered = if (activeId != null) {
+            allTrades.filter { it.accountId == activeId }
         } else {
             allTrades
         }
         repository.computeAnalytics(filtered)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AnalyticsSummary())
 
-    fun onSelectAccountFilter(accountId: Long?) {
-        _selectedAccountId.value = accountId
+    fun onSelectAccountFilter(accountId: Long) {
+        repository.selectAccount(accountId)
     }
 }

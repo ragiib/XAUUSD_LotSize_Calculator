@@ -52,17 +52,24 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
     val uiState: StateFlow<JournalUiState> = _uiState
 
     val accounts: StateFlow<List<Account>> = repository.accounts
+    val selectedAccountId: StateFlow<Long?> = repository.selectedAccountId
+
+    val activeAccountTrades: StateFlow<List<Trade>> = combine(
+        repository.trades,
+        repository.selectedAccountId
+    ) { allTrades, accountId ->
+        if (accountId != null) {
+            allTrades.filter { it.accountId == accountId }
+        } else {
+            allTrades
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val filteredTrades: StateFlow<List<Trade>> = combine(
-        repository.trades,
+        activeAccountTrades,
         _uiState
-    ) { allTrades, state ->
-        var list = allTrades
-
-        // Account Filter
-        if (state.selectedAccountFilterId != null) {
-            list = list.filter { it.accountId == state.selectedAccountFilterId }
-        }
+    ) { accountTrades, state ->
+        var list = accountTrades
 
         // Result Filter
         list = when (state.resultFilter) {
@@ -93,7 +100,7 @@ class JournalViewModel(application: Application) : AndroidViewModel(application)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     fun onAccountFilterSelected(accountId: Long?) {
-        _uiState.update { it.copy(selectedAccountFilterId = accountId) }
+        repository.selectAccount(accountId)
     }
 
     fun onResultFilterSelected(filter: TradeResultFilter) {

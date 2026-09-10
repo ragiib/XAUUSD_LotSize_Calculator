@@ -59,16 +59,17 @@ import com.example.xauusdlotsizecalculator.domain.model.TradeStatus
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvGoldAccent
-import com.example.xauusdlotsizecalculator.theme.TvGreenProfit
 import com.example.xauusdlotsizecalculator.theme.TvLightGrey
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
-import com.example.xauusdlotsizecalculator.theme.TvRedContainer
-import com.example.xauusdlotsizecalculator.theme.TvRedContainerBorder
-import com.example.xauusdlotsizecalculator.theme.TvRedLoss
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
+import com.example.xauusdlotsizecalculator.theme.TvWinColor
+import com.example.xauusdlotsizecalculator.theme.TvWinContainer
+import com.example.xauusdlotsizecalculator.theme.TvLossColor
+import com.example.xauusdlotsizecalculator.theme.TvLossContainer
+import com.example.xauusdlotsizecalculator.theme.TvLossContainerBorder
 import java.io.File
 import java.text.DecimalFormat
 
@@ -184,8 +185,8 @@ fun TradeDetailBottomSheet(
             val pnl = trade.profitLoss ?: 0.0
             val pnlColor = when {
                 trade.status == TradeStatus.OPEN -> TvPurpleGlow
-                pnl > 0 -> TvGreenProfit
-                pnl < 0 -> TvRedLoss
+                pnl > 0 -> TvWinColor
+                pnl < 0 -> TvLossColor
                 else -> TvSilver
             }
 
@@ -214,7 +215,7 @@ fun TradeDetailBottomSheet(
 
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = if (trade.status == TradeStatus.WIN) TvGreenProfit.copy(alpha = 0.2f) else if (trade.status == TradeStatus.LOSS) TvRedLoss.copy(alpha = 0.2f) else TvPlumContainer
+                            color = if (trade.status == TradeStatus.WIN) TvWinContainer else if (trade.status == TradeStatus.LOSS) TvLossContainer else TvPlumContainer
                         ) {
                             Text(
                                 text = trade.status.displayName.uppercase(),
@@ -317,8 +318,8 @@ fun TradeDetailBottomSheet(
             if (trade.hasMistake) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = TvRedContainer,
-                    border = BorderStroke(1.dp, TvRedContainerBorder),
+                    color = TvLossContainer,
+                    border = BorderStroke(1.dp, TvLossContainerBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -329,7 +330,7 @@ fun TradeDetailBottomSheet(
                             Icon(
                                 imageVector = Icons.Default.WarningAmber,
                                 contentDescription = null,
-                                tint = TvRedLoss,
+                                tint = TvLossColor,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -337,7 +338,7 @@ fun TradeDetailBottomSheet(
                                 text = "Mistakes Identified",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TvRedLoss
+                                color = TvLossColor
                             )
                         }
                         Text(
@@ -426,10 +427,10 @@ fun TradeDetailBottomSheet(
                             color = TvSilverBright
                         )
                         Text(
-                            text = if (trade.wouldTakeAgain) "✅ YES" else "❌ NO",
+                            text = if (trade.wouldTakeAgain) "YES" else "NO",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (trade.wouldTakeAgain) TvGreenProfit else TvRedLoss
+                            color = if (trade.wouldTakeAgain) TvWinColor else TvSilverBright
                         )
                     }
 
@@ -494,8 +495,8 @@ fun TradeDetailBottomSheet(
                 OutlinedButton(
                     onClick = { showDeleteConfirm = true },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TvRedLoss),
-                    border = BorderStroke(1.dp, TvRedLoss.copy(alpha = 0.5f)),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TvLossColor),
+                    border = BorderStroke(1.dp, TvLossColor.copy(alpha = 0.5f)),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -543,7 +544,7 @@ fun TradeDetailBottomSheet(
                             onDelete(trade)
                         }
                     ) {
-                        Text("Delete", color = TvRedLoss, fontWeight = FontWeight.Bold)
+                        Text("Delete", color = TvLossColor, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
