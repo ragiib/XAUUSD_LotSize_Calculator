@@ -55,5 +55,6 @@ data class AnalyticsSummary(
     val mostCommonMistake: String? = null,
     val dailyPerformance: DailyPerformance = DailyPerformance(),
     val setupPerformances: List<SetupPerformance> = emptyList(),
-    val mistakeImpacts: List<MistakeImpact> = emptyList()
+    val mistakeImpacts: List<MistakeImpact> = emptyList(),
+    val mistakeCapitalDrain: Double = 0.0
 )

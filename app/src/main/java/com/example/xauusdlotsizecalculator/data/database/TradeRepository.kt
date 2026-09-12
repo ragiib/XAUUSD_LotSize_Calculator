@@ -325,14 +325,20 @@ class TradeRepository private constructor(
             else -> setupPerformances.last().setupName
         }
 
-        // Mistake Impact (accurately tracking "Tight SL" and all mistakes)
+        // Mistake Impact:
+        // A trade may have multiple mistakes.
+        // Each unique mistake on that trade increments that mistake's occurrence count by 1.
+        // For mistake-specific impact, the full trade loss is attributed to that mistake (never divided or altered).
         val mistakeMap = mutableMapOf<String, Pair<Int, Double>>() // Name -> (Count, Loss Impact)
         for (t in closedTrades) {
-            for (m in t.mistakes) {
-                if (!m.equals("No Mistake", ignoreCase = true)) {
+            val validMistakes = t.mistakes
+                .filter { !it.equals("No Mistake", ignoreCase = true) }
+                .distinct()
+            if (validMistakes.isNotEmpty()) {
+                val tradeLoss = if ((t.profitLoss ?: 0.0) < 0.0) Math.abs(t.profitLoss ?: 0.0) else 0.0
+                for (m in validMistakes) {
                     val current = mistakeMap[m] ?: Pair(0, 0.0)
-                    val lossContribution = if ((t.profitLoss ?: 0.0) < 0) Math.abs(t.profitLoss ?: 0.0) else 0.0
-                    mistakeMap[m] = Pair(current.first + 1, current.second + lossContribution)
+                    mistakeMap[m] = Pair(current.first + 1, current.second + tradeLoss)
                 }
             }
         }
@@ -345,6 +351,17 @@ class TradeRepository private constructor(
         }.sortedByDescending { it.financialLossImpact }
 
         val mostCommonMistake = mistakeImpacts.maxByOrNull { it.occurrenceCount }?.mistakeName
+
+        // Overall Capital Drain:
+        // Uses unique trade IDs so that each losing trade is counted strictly ONCE in overall capital drain,
+        // regardless of whether that trade had 1 mistake or 5 mistakes.
+        val mistakeCapitalDrain = closedTrades
+            .distinctBy { it.id }
+            .filter { t ->
+                (t.profitLoss ?: 0.0) < 0.0 &&
+                t.mistakes.any { !it.equals("No Mistake", ignoreCase = true) }
+            }
+            .sumOf { Math.abs(it.profitLoss ?: 0.0) }
 
         // Daily performance (Today)
         val todayCalendar = Calendar.getInstance().apply {
@@ -404,7 +421,8 @@ class TradeRepository private constructor(
             mostCommonMistake = mostCommonMistake,
             dailyPerformance = dailyPerformance,
             setupPerformances = setupPerformances,
-            mistakeImpacts = mistakeImpacts
+            mistakeImpacts = mistakeImpacts,
+            mistakeCapitalDrain = mistakeCapitalDrain
         )
     }
 

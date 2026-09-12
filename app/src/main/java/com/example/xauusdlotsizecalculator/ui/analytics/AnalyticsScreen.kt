@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +49,7 @@ import com.example.xauusdlotsizecalculator.domain.model.MistakeImpact
 import com.example.xauusdlotsizecalculator.domain.model.SetupPerformance
 import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
 import com.example.xauusdlotsizecalculator.theme.TvBreakeven
+import com.example.xauusdlotsizecalculator.theme.TvCharcoalDark
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvGoldAccent
 import com.example.xauusdlotsizecalculator.theme.TvWinColor
@@ -57,6 +59,7 @@ import com.example.xauusdlotsizecalculator.theme.TvLossColor
 import com.example.xauusdlotsizecalculator.theme.TvLossContainer
 import com.example.xauusdlotsizecalculator.theme.TvLossContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
+import com.example.xauusdlotsizecalculator.theme.TvPlumContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
@@ -232,7 +235,11 @@ fun AnalyticsScreenContent(
             SetupPerformanceSection(setups = summary.setupPerformances)
 
             // Section 4: "My Mistakes" Leak Tracker
-            MistakeImpactSection(mistakes = summary.mistakeImpacts)
+            MistakeImpactSection(
+                mistakes = summary.mistakeImpacts,
+                totalTrades = summary.totalTrades,
+                capitalDrain = summary.mistakeCapitalDrain
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
         }
@@ -606,7 +613,11 @@ private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
 }
 
 @Composable
-private fun MistakeImpactSection(mistakes: List<MistakeImpact>) {
+private fun MistakeImpactSection(
+    mistakes: List<MistakeImpact>,
+    totalTrades: Int = 0,
+    capitalDrain: Double = 0.0
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -617,87 +628,370 @@ private fun MistakeImpactSection(mistakes: List<MistakeImpact>) {
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.WarningAmber,
-                    contentDescription = null,
-                    tint = TvPurpleGlow,
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "MY MISTAKES (LEAK TRACKER)",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = TvSilver
-                )
-            }
+            // Header Row with Icon, Title, and Leak Count Badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = TvPlumContainer,
+                        border = BorderStroke(1.dp, TvPlumContainerBorder),
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.WarningAmber,
+                                contentDescription = null,
+                                tint = TvPurpleGlow,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "MY MISTAKES (LEAK TRACKER)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp,
+                            color = TvSilverBright
+                        )
+                        Text(
+                            text = "Behavioral Capital Protection",
+                            fontSize = 10.sp,
+                            color = TvSilver
+                        )
+                    }
+                }
 
-            Text(
-                text = "Track and eliminate costly repeated behaviors to protect your trading capital.",
-                fontSize = 12.sp,
-                color = TvSilver
-            )
+                if (mistakes.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = TvLossContainer,
+                        border = BorderStroke(1.dp, TvLossContainerBorder)
+                    ) {
+                        Text(
+                            text = "${mistakes.size} ${if (mistakes.size == 1) "leak" else "leaks"}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = FontFamily.Monospace,
+                            color = TvLossColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
 
             if (mistakes.isEmpty()) {
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = TvWinContainer,
-                    border = BorderStroke(1.dp, TvWinContainerBorder),
+                    shape = RoundedCornerShape(14.dp),
+                    color = TvPlumContainer.copy(alpha = 0.5f),
+                    border = BorderStroke(1.dp, TvPlumContainerBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "🎉 Zero repeated mistakes recorded! Keep up the disciplined execution.",
-                        fontSize = 12.sp,
-                        color = TvWinColor,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            } else {
-                val maxLoss = mistakes.maxOfOrNull { it.financialLossImpact } ?: 1.0
-
-                mistakes.forEach { m ->
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = TvPlumContainer,
+                            border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.5f)),
+                            modifier = Modifier.size(36.dp)
                         ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Psychology,
+                                    contentDescription = null,
+                                    tint = TvPurpleGlow,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = m.mistakeName,
+                                text = "Disciplined Execution",
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TvSilverBright
+                                color = TvPurpleNumber
                             )
-
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${m.occurrenceCount} times  •  -$${DecimalFormat("#,##0.00").format(m.financialLossImpact)} impact",
-                                fontSize = 12.sp,
-                                fontFamily = FontFamily.Monospace,
-                                fontWeight = FontWeight.SemiBold,
-                                color = TvLossColor
+                                text = "Zero repeated execution leaks detected across your closed trades. Keep following your plan.",
+                                fontSize = 11.sp,
+                                color = TvSilver
                             )
                         }
+                    }
+                }
+            } else {
+                val totalMistakeOccurrences = mistakes.sumOf { it.occurrenceCount }
+                val totalFinancialLoss = capitalDrain
+                val maxLoss = mistakes.maxOfOrNull { it.financialLossImpact } ?: 0.0
+                val maxOccurrences = mistakes.maxOfOrNull { it.occurrenceCount } ?: 1
 
-                        // Relative visual impact bar
-                        val progress = if (maxLoss > 0) (m.financialLossImpact / maxLoss).toFloat().coerceIn(0.05f, 1f) else 0.05f
-                        LinearProgressIndicator(
-                            progress = { progress },
+                // Overview metrics strip
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                            Text(
+                                text = "TOTAL INCIDENTS",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp,
+                                color = TvSilver
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(
+                                    text = "$totalMistakeOccurrences",
+                                    fontSize = 17.sp,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TvSilverBright
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "tagged",
+                                    fontSize = 11.sp,
+                                    color = TvSilver,
+                                    modifier = Modifier.padding(bottom = 1.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                            Text(
+                                text = "CAPITAL DRAIN",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 0.5.sp,
+                                color = TvSilver
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = if (totalFinancialLoss > 0) "-$${DecimalFormat("#,##0.00").format(totalFinancialLoss)}" else "$0.00",
+                                fontSize = 17.sp,
+                                fontFamily = FontFamily.Monospace,
+                                fontWeight = FontWeight.Bold,
+                                color = if (totalFinancialLoss > 0) TvLossColor else TvSilver
+                            )
+                        }
+                    }
+                }
+
+                // Mistake Cards List
+                mistakes.forEachIndexed { index, m ->
+                    val occurrencePct = if (totalMistakeOccurrences > 0) {
+                        (m.occurrenceCount.toDouble() / totalMistakeOccurrences * 100)
+                    } else 0.0
+
+                    val tradeRatePct = if (totalTrades > 0) {
+                        (m.occurrenceCount.toDouble() / totalTrades * 100)
+                    } else 0.0
+
+                    val relativeProgress = when {
+                        maxLoss > 0 && m.financialLossImpact > 0 -> {
+                            (m.financialLossImpact / maxLoss).toFloat().coerceIn(0.08f, 1f)
+                        }
+                        maxOccurrences > 0 -> {
+                            (m.occurrenceCount.toFloat() / maxOccurrences).coerceIn(0.08f, 1f)
+                        }
+                        else -> 0.08f
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(6.dp)
-                                .clip(RoundedCornerShape(3.dp)),
-                            color = TvPurplePrimary,
-                            trackColor = TvLossContainer
-                        )
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            // Row 1: Index + Mistake Title + Top Leak Badge + Loss Impact
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = TvCharcoalDark,
+                                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Text(
+                                                text = "#${index + 1}",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = TvPurpleGlow
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Text(
+                                        text = m.mistakeName,
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = TvSilverBright,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f, fill = false)
+                                    )
+
+                                    if (index == 0 && m.financialLossImpact > 0) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = TvPlumContainer,
+                                            border = BorderStroke(1.dp, TvPlumContainerBorder)
+                                        ) {
+                                            Text(
+                                                text = "TOP LEAK",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                letterSpacing = 0.5.sp,
+                                                color = TvPurpleGlow,
+                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.width(10.dp))
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text(
+                                        text = if (m.financialLossImpact > 0) {
+                                            "-$${DecimalFormat("#,##0.00").format(m.financialLossImpact)}"
+                                        } else {
+                                            "$0.00"
+                                        },
+                                        fontSize = 13.sp,
+                                        fontFamily = FontFamily.Monospace,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (m.financialLossImpact > 0) TvLossColor else TvSilver
+                                    )
+                                    Text(
+                                        text = "loss impact",
+                                        fontSize = 9.sp,
+                                        color = TvSilver
+                                    )
+                                }
+                            }
+
+                            // Row 2: Metric chips (Count, % of leaks, % of trades)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Occurrence count chip
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = TvLossContainer,
+                                    border = BorderStroke(1.dp, TvLossContainerBorder)
+                                ) {
+                                    Text(
+                                        text = "${m.occurrenceCount} ${if (m.occurrenceCount == 1) "incident" else "incidents"}",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = TvLossColor,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+
+                                // Occurrence percentage of all leaks chip
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = TvPlumContainer,
+                                    border = BorderStroke(1.dp, TvPlumContainerBorder)
+                                ) {
+                                    Text(
+                                        text = "${DecimalFormat("0.0").format(occurrencePct)}% of leaks",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontFamily = FontFamily.Monospace,
+                                        color = TvPurpleGlow,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                    )
+                                }
+
+                                // If totalTrades > 0, show % of all trades
+                                if (totalTrades > 0) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = MaterialTheme.colorScheme.surfaceVariant,
+                                        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+                                    ) {
+                                        Text(
+                                            text = "${DecimalFormat("0.0").format(tradeRatePct)}% trades",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Normal,
+                                            fontFamily = FontFamily.Monospace,
+                                            color = TvSilver,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Row 3: Relative Visual Impact Progress Bar
+                            LinearProgressIndicator(
+                                progress = { relativeProgress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp)),
+                                color = TvPurplePrimary,
+                                trackColor = TvCharcoalDark
+                            )
+                        }
                     }
                 }
             }
