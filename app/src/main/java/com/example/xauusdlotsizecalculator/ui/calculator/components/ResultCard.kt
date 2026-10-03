@@ -22,8 +22,6 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
@@ -42,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.xauusdlotsizecalculator.domain.model.CalculationResult
 import com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode
+import com.example.xauusdlotsizecalculator.theme.AnimatedNumericalValue
 import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
@@ -57,6 +57,8 @@ import com.example.xauusdlotsizecalculator.theme.TvWarning
 import com.example.xauusdlotsizecalculator.theme.TvWarningContainer
 import com.example.xauusdlotsizecalculator.theme.TvWarningContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvWarningText
+import com.example.xauusdlotsizecalculator.theme.tactileClickable
+import com.example.xauusdlotsizecalculator.theme.terminalGlass
 
 @Composable
 fun ResultCard(
@@ -70,23 +72,17 @@ fun ResultCard(
 ) {
     val clipboardManager = LocalClipboardManager.current
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(
-            width = 1.2.dp,
-            brush = Brush.linearGradient(
-                colors = listOf(
-                    TvPurplePrimary,
-                    TvPlumContainerBorder,
-                    TvDarkSurfaceBorder
-                )
-            )
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = Color(0xDC0E0B18),
+                borderColor = Color(0xFF4C1D95),
+                specularHighlight = Color(0x60C084FC),
+                elevation = 6.dp
+            ),
+        color = Color.Transparent
     ) {
         if (result == null) {
             Box(
@@ -116,9 +112,9 @@ fun ResultCard(
                 ) {
                     Text(
                         text = "RECOMMENDED LOT SIZE",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp,
                         color = TvPurpleGlow
                     )
 
@@ -132,12 +128,12 @@ fun ResultCard(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Medium,
                             color = TvPurpleGlow,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
                 }
 
-                // Primary Hero Lot Size
+                // Primary Hero Lot Size with Animated Number Transition
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.Bottom,
@@ -147,10 +143,10 @@ fun ResultCard(
                         Row(
                             verticalAlignment = Alignment.Bottom
                         ) {
-                            Text(
-                                text = result.formattedBrokerLot,
+                            AnimatedNumericalValue(
+                                value = result.formattedBrokerLot,
                                 style = FinancialNumericStyle.copy(
-                                    fontSize = 42.sp,
+                                    fontSize = 44.sp,
                                     color = TvPurpleNumber
                                 )
                             )
@@ -166,19 +162,19 @@ fun ResultCard(
 
                         Text(
                             text = "Exact Calculated: ${result.formattedExactLot} lots",
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace,
                             color = TvSilver
                         )
                     }
 
-                    // Copy Lot Size Button
+                    // Copy Lot Size Button with Tactile Feedback
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .background(TvPlumContainer)
                             .border(BorderStroke(1.dp, TvPlumContainerBorder), RoundedCornerShape(12.dp))
-                            .clickable {
+                            .tactileClickable {
                                 clipboardManager.setText(AnnotatedString(result.formattedBrokerLot))
                                 onCopyFeedback("Copied ${result.formattedBrokerLot} lots to clipboard")
                             }
@@ -190,7 +186,7 @@ fun ResultCard(
                                 imageVector = Icons.Default.ContentCopy,
                                 contentDescription = "Copy Lot Size",
                                 tint = TvPurpleGlow,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier.size(15.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
@@ -220,12 +216,12 @@ fun ResultCard(
                                     imageVector = Icons.Default.WarningAmber,
                                     contentDescription = "Warning",
                                     tint = TvWarning,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(18.dp)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = "⚠️ XAUUSD LIMIT EXCEEDED",
-                                    fontSize = 13.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = TvWarningText
                                 )
@@ -267,7 +263,7 @@ fun ResultCard(
                                 imageVector = Icons.Default.Info,
                                 contentDescription = null,
                                 tint = TvSilverBright,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
@@ -280,18 +276,28 @@ fun ResultCard(
                     }
                 }
 
-                // Divider line
+                // Divider line with subtle specular glow
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(TvDarkSurfaceBorder)
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    TvDarkSurfaceBorder,
+                                    Color(0x60C084FC),
+                                    TvDarkSurfaceBorder,
+                                    Color.Transparent
+                                )
+                            )
+                        )
                 )
 
                 // 2x2 Financial Metrics Grid
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricBox(
                         label = "Risk Amount",
@@ -314,12 +320,12 @@ fun ResultCard(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     MetricBox(
-                        label = "SL Price Distance",
+                        label = "SL Distance",
                         primaryValue = result.formattedSlDistance,
-                        secondaryValue = "Points / Price drop",
+                        secondaryValue = "Price distance",
                         modifier = Modifier.weight(1f)
                     )
 
@@ -341,7 +347,7 @@ fun ResultCard(
                     }
                 }
 
-                // Quick "Save as Trade" Action Button
+                // Quick "Save as Trade" Action Button with Glowing Tactile Finish
                 if (onSaveAsTrade != null) {
                     Button(
                         onClick = onSaveAsTrade,
@@ -353,6 +359,16 @@ fun ResultCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp)
+                            .drawBehind {
+                                drawLine(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.4f), Color.Transparent)
+                                    ),
+                                    start = androidx.compose.ui.geometry.Offset(16.dp.toPx(), 1f),
+                                    end = androidx.compose.ui.geometry.Offset(size.width - 16.dp.toPx(), 1f),
+                                    strokeWidth = 1.2f
+                                )
+                            }
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.MenuBook,
@@ -382,14 +398,14 @@ private fun MetricBox(
     onCopy: (() -> Unit)? = null
 ) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0x66140F22),
         border = BorderStroke(1.dp, TvDarkSurfaceBorder),
         modifier = modifier
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -409,18 +425,20 @@ private fun MetricBox(
                         contentDescription = "Copy",
                         tint = TvPurpleGlow,
                         modifier = Modifier
-                            .size(14.dp)
+                            .size(13.dp)
                             .clickable(onClick = onCopy)
                     )
                 }
             }
 
-            Text(
-                text = primaryValue,
-                fontSize = 17.sp,
-                fontFamily = FontFamily.Monospace,
-                fontWeight = FontWeight.Bold,
-                color = primaryColor
+            AnimatedNumericalValue(
+                value = primaryValue,
+                style = androidx.compose.ui.text.TextStyle(
+                    fontSize = 16.sp,
+                    fontFamily = FontFamily.Monospace,
+                    fontWeight = FontWeight.Bold,
+                    color = primaryColor
+                )
             )
 
             if (secondaryValue != null) {
@@ -433,30 +451,3 @@ private fun MetricBox(
         }
     }
 }
-
-@androidx.compose.ui.tooling.preview.Preview(name = "Result Card", showBackground = true)
-@Composable
-fun ResultCardPreview() {
-    val sampleInput = com.example.xauusdlotsizecalculator.domain.model.CalculationInput(
-        balance = java.math.BigDecimal("5000"),
-        riskPercent = java.math.BigDecimal("1"),
-        entryPrice = java.math.BigDecimal("2650.00"),
-        slPercent = java.math.BigDecimal("0.18868"),
-        direction = com.example.xauusdlotsizecalculator.domain.model.TradeDirection.BUY,
-        contractSize = java.math.BigDecimal("100"),
-        lotStep = com.example.xauusdlotsizecalculator.domain.model.LotStep.STEP_0_01,
-        roundingMode = com.example.xauusdlotsizecalculator.domain.model.LotRoundingMode.ROUND_DOWN,
-        slPrice = java.math.BigDecimal("2645.00"),
-        takeProfitPrice = java.math.BigDecimal("2662.50")
-    )
-    val sampleResult = com.example.xauusdlotsizecalculator.domain.calculator.XauusdLotCalculator.calculate(sampleInput)
-
-    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
-        ResultCard(
-            result = sampleResult,
-            onCopyFeedback = {},
-            onSaveAsTrade = {}
-        )
-    }
-}
-

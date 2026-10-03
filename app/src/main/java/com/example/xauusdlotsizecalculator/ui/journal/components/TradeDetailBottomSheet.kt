@@ -533,25 +533,14 @@ fun TradeDetailBottomSheet(
         }
 
         if (showDeleteConfirm) {
-            AlertDialog(
-                onDismissRequest = { showDeleteConfirm = false },
-                title = { Text("Delete Trade Entry?") },
-                text = { Text("Are you sure you want to delete this trade record from your journal? This action cannot be undone.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showDeleteConfirm = false
-                            onDelete(trade)
-                        }
-                    ) {
-                        Text("Delete", color = TvLossColor, fontWeight = FontWeight.Bold)
-                    }
+            DeleteTradeDialog(
+                trade = trade,
+                accountName = accountName,
+                onConfirmDelete = {
+                    showDeleteConfirm = false
+                    onDelete(it)
                 },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) {
-                        Text("Cancel")
-                    }
-                }
+                onDismiss = { showDeleteConfirm = false }
             )
         }
     }

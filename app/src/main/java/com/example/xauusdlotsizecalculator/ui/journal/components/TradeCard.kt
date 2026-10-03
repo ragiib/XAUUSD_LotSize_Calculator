@@ -1,8 +1,10 @@
 package com.example.xauusdlotsizecalculator.ui.journal.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -13,19 +15,33 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import com.example.xauusdlotsizecalculator.domain.model.Trade
 import com.example.xauusdlotsizecalculator.domain.model.TradeDirection
 import com.example.xauusdlotsizecalculator.domain.model.TradeStatus
+import com.example.xauusdlotsizecalculator.theme.TerminalDestructiveRed
+import com.example.xauusdlotsizecalculator.theme.TerminalDestructiveText
 import com.example.xauusdlotsizecalculator.theme.TvBreakeven
 import com.example.xauusdlotsizecalculator.theme.TvBreakevenContainer
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
@@ -45,11 +63,14 @@ import com.example.xauusdlotsizecalculator.theme.TvLossContainer
 import com.example.xauusdlotsizecalculator.theme.TvLossContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
+import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import com.example.xauusdlotsizecalculator.theme.TvWinColor
 import com.example.xauusdlotsizecalculator.theme.TvWinContainer
 import com.example.xauusdlotsizecalculator.theme.TvWinContainerBorder
+import com.example.xauusdlotsizecalculator.theme.tactileClickable
+import com.example.xauusdlotsizecalculator.theme.terminalGlass
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -58,8 +79,13 @@ fun TradeCard(
     trade: Trade,
     accountName: String? = null,
     onClick: () -> Unit,
+    onDeleteRequest: ((Trade) -> Unit)? = null,
+    onDuplicateRequest: ((Trade) -> Unit)? = null,
+    onEditRequest: ((Trade) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    var showOverflowMenu by remember { mutableStateOf(false) }
+
     val pnl = trade.profitLoss ?: 0.0
     val isWin = trade.status == TradeStatus.WIN || pnl > 0
     val isLoss = trade.status == TradeStatus.LOSS || pnl < 0
@@ -73,24 +99,44 @@ fun TradeCard(
         else -> Triple(TvBreakeven, TvBreakevenContainer, TvDarkSurfaceBorder)
     }
 
-    Card(
+    val directionColor = if (trade.direction == TradeDirection.BUY) TvBuyColor else TvSilver.copy(alpha = 0.85f)
+
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            .terminalGlass(
+                shape = RoundedCornerShape(18.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = Color(0xFF2E1C44),
+                specularHighlight = if (trade.direction == TradeDirection.BUY) Color(0x50A855F7) else Color(0x30E5E7EB),
+                elevation = 4.dp
+            )
+            .clickable(onClick = onClick)
     ) {
+        // Left Direction Accent Indicator Strip
+        Box(
+            modifier = Modifier
+                .width(4.dp)
+                .height(48.dp)
+                .align(Alignment.CenterStart)
+                .clip(RoundedCornerShape(topEnd = 4.dp, bottomEnd = 4.dp))
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            directionColor,
+                            directionColor.copy(alpha = 0.2f)
+                        )
+                    )
+                )
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
+                .padding(start = 14.dp, top = 12.dp, end = 12.dp, bottom = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Row 1: Direction & Symbol Tag, Account Pill (if available), and Date/Time
+            // Row 1: Direction & Symbol Tag, Account Pill, Date/Time, and Contextual Action Menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -103,12 +149,12 @@ fun TradeCard(
                     // Direction & Symbol Badge
                     Surface(
                         shape = RoundedCornerShape(6.dp),
-                        color = if (trade.direction == TradeDirection.BUY) TvBuyColor else TvSilver.copy(alpha = 0.2f),
-                        modifier = Modifier.padding(end = 6.dp)
+                        color = if (trade.direction == TradeDirection.BUY) TvBuyColor.copy(alpha = 0.85f) else TvSilver.copy(alpha = 0.18f),
+                        border = BorderStroke(1.dp, if (trade.direction == TradeDirection.BUY) TvPurplePrimary else TvSilver.copy(alpha = 0.3f))
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.5.dp)
                         ) {
                             Icon(
                                 imageVector = if (trade.direction == TradeDirection.BUY) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
@@ -128,9 +174,10 @@ fun TradeCard(
 
                     // Account Tag (if available)
                     if (!accountName.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.width(6.dp))
                         Surface(
                             shape = RoundedCornerShape(6.dp),
-                            color = TvPlumContainer,
+                            color = TvPlumContainer.copy(alpha = 0.8f),
                             border = BorderStroke(1.dp, TvDarkSurfaceBorder)
                         ) {
                             Text(
@@ -145,14 +192,81 @@ fun TradeCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // Date & Time
+                    Text(
+                        text = trade.formattedDateTime,
+                        fontSize = 11.sp,
+                        color = TvSilver.copy(alpha = 0.8f)
+                    )
 
-                // Date & Time
-                Text(
-                    text = trade.formattedDateTime,
-                    fontSize = 11.sp,
-                    color = TvSilver.copy(alpha = 0.8f)
-                )
+                    // Contextual 3-dot Menu Button
+                    if (onDeleteRequest != null || onDuplicateRequest != null || onEditRequest != null) {
+                        Box {
+                            IconButton(
+                                onClick = { showOverflowMenu = true },
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreVert,
+                                    contentDescription = "Trade Options",
+                                    tint = TvSilver,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = showOverflowMenu,
+                                onDismissRequest = { showOverflowMenu = false }
+                            ) {
+                                if (onEditRequest != null) {
+                                    DropdownMenuItem(
+                                        text = { Text("Edit Trade") },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Edit, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(16.dp))
+                                        },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onEditRequest(trade)
+                                        }
+                                    )
+                                }
+
+                                if (onDuplicateRequest != null) {
+                                    DropdownMenuItem(
+                                        text = { Text("Duplicate Trade") },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.ContentCopy, contentDescription = null, tint = TvSilverBright, modifier = Modifier.size(16.dp))
+                                        },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onDuplicateRequest(trade)
+                                        }
+                                    )
+                                }
+
+                                if (onDeleteRequest != null) {
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = "Delete Trade",
+                                                color = TerminalDestructiveRed,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        },
+                                        leadingIcon = {
+                                            Icon(Icons.Default.Delete, contentDescription = null, tint = TerminalDestructiveRed, modifier = Modifier.size(16.dp))
+                                        },
+                                        onClick = {
+                                            showOverflowMenu = false
+                                            onDeleteRequest(trade)
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // Row 2: Lot Size & Price levels (Entry -> SL -> TP) vs P/L and R Multiple
@@ -197,12 +311,21 @@ fun TradeCard(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         if (isOpen) {
-                            Text(
-                                text = "OPEN",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TvPurpleGlow
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(TvPurpleGlow)
+                                )
+                                Spacer(modifier = Modifier.width(5.dp))
+                                Text(
+                                    text = "OPEN",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = TvPurpleGlow
+                                )
+                            }
                             if (trade.plannedRrRatio != null) {
                                 Text(
                                     text = "Plan: 1:${DecimalFormat("#0.0").format(trade.plannedRrRatio)}",
@@ -243,7 +366,7 @@ fun TradeCard(
                 // Setup tag
                 Surface(
                     shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
                     border = BorderStroke(1.dp, TvDarkSurfaceBorder)
                 ) {
                     Text(
@@ -272,7 +395,7 @@ fun TradeCard(
                 }
             }
 
-            // Row 4: Mistakes List (Responsive wrapping with FlowRow to eliminate ANY collision/overlap)
+            // Row 4: Mistakes List (Responsive wrapping with FlowRow)
             val actualMistakes = trade.mistakes.filter { !it.equals("No Mistake", ignoreCase = true) }
             if (actualMistakes.isNotEmpty()) {
                 FlowRow(
@@ -298,43 +421,11 @@ fun TradeCard(
                 }
             } else if (trade.isClosed) {
                 Text(
-                    text = "Clean execution",
+                    text = "● Clean execution",
                     fontSize = 10.sp,
-                    color = TvSilver.copy(alpha = 0.6f)
+                    color = TvSilver.copy(alpha = 0.5f)
                 )
             }
         }
-    }
-}
-
-@androidx.compose.ui.tooling.preview.Preview(name = "Trade Card - Winner", showBackground = true)
-@Composable
-fun TradeCardWinnerPreview() {
-    com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
-        TradeCard(
-            trade = Trade(
-                id = 1,
-                accountId = 1,
-                dateEpochMs = System.currentTimeMillis(),
-                symbol = "XAUUSD",
-                direction = TradeDirection.BUY,
-                lotSize = 0.20,
-                entryPrice = 2650.00,
-                stopLossPrice = 2645.00,
-                takeProfitPrice = 2662.50,
-                exitPrice = 2662.50,
-                status = TradeStatus.WIN,
-                setup = "London Breakout",
-                setupQuality = com.example.xauusdlotsizecalculator.domain.model.SetupQuality.A_PLUS,
-                plannedRiskAmount = 100.0,
-                profitLoss = 250.0,
-                rMultiple = 2.50,
-                mistakes = emptyList(),
-                emotionBefore = "Calm",
-                emotionAfter = "Confident"
-            ),
-            accountName = "PropScholar Freedom 5K",
-            onClick = {}
-        )
     }
 }

@@ -86,12 +86,17 @@ import com.example.xauusdlotsizecalculator.domain.model.Account
 import com.example.xauusdlotsizecalculator.domain.model.CalculatorSettings
 import com.example.xauusdlotsizecalculator.domain.model.DisciplineSettings
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.example.xauusdlotsizecalculator.theme.AnimatedNumericalValue
 import com.example.xauusdlotsizecalculator.theme.FinancialNumericStyle
+import com.example.xauusdlotsizecalculator.theme.TerminalBackground
+import com.example.xauusdlotsizecalculator.theme.tactileClickable
+import com.example.xauusdlotsizecalculator.theme.terminalGlass
 import com.example.xauusdlotsizecalculator.theme.TvBuyColor
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
 import com.example.xauusdlotsizecalculator.theme.TvGoldAccent
 import com.example.xauusdlotsizecalculator.theme.TvWinColor
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
+import com.example.xauusdlotsizecalculator.theme.TvPlumContainerBorder
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
@@ -223,261 +228,283 @@ fun AccountScreenContent(
     val activeAccount = stats?.account ?: uiState.availableAccounts.firstOrNull { it.id == uiState.selectedAccountId }
     var accountDropdownExpanded by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(end = 8.dp)
+    TerminalBackground(modifier = modifier) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
-                            Text(
-                                text = if (activeAccount?.isPropFirm == true) "PROP" else "LIVE",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
-                        }
-                        Text(
-                            text = "Trading Accounts",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Section 1: Active Account Header & Switcher
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "ACCOUNT",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TvSilver
-                )
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(14.dp))
-                                .clickable { accountDropdownExpanded = true },
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            border = BorderStroke(1.2.dp, TvPurplePrimary),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = TvPlumContainer,
+                                border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.5f)),
+                                modifier = Modifier.padding(end = 8.dp)
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountBalance,
-                                        contentDescription = null,
-                                        tint = TvPurpleGlow,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(10.dp))
-                                    Column {
-                                        Text(
-                                            text = activeAccount?.name ?: "Select Account",
-                                            fontSize = 15.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = TvSilverBright
-                                        )
-                                        Text(
-                                            text = "${if (activeAccount?.isPropFirm == true) "Prop Account" else "Personal Account"} • ${activeAccount?.currency ?: "$"}${DecimalFormat("#,##0.00").format(stats?.currentBalance ?: activeAccount?.currentBalance ?: 5000.0)}",
-                                            fontSize = 11.sp,
-                                            color = TvSilver
-                                        )
-                                    }
-                                }
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = null,
-                                    tint = TvSilver
+                                Text(
+                                    text = if (activeAccount?.isPropFirm == true) "PROP ACCOUNT" else "LIVE CAPITAL",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.2.sp,
+                                    color = TvPurpleGlow,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
+                            Text(
+                                text = "Accounts & Risk Guard",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                color = Color.White
+                            )
                         }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            },
+            snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
+            containerColor = Color.Transparent,
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Section 1: Active Account Header & Switcher
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        text = "ACTIVE PORTFOLIO",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp,
+                        color = TvSilver
+                    )
 
-                        DropdownMenu(
-                            expanded = accountDropdownExpanded,
-                            onDismissRequest = { accountDropdownExpanded = false }
-                        ) {
-                            uiState.availableAccounts.forEach { acc ->
-                                DropdownMenuItem(
-                                    text = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .terminalGlass(
+                                        shape = RoundedCornerShape(14.dp),
+                                        backgroundColor = Color(0xCC110D1E),
+                                        borderColor = TvPurplePrimary.copy(alpha = 0.6f),
+                                        specularHighlight = Color(0x30C084FC)
+                                    )
+                                    .tactileClickable { accountDropdownExpanded = true },
+                                color = Color.Transparent
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountBalance,
+                                            contentDescription = null,
+                                            tint = TvPurpleGlow,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
                                         Column {
                                             Text(
-                                                text = acc.name,
-                                                fontWeight = if (acc.id == uiState.selectedAccountId) FontWeight.Bold else FontWeight.Normal
+                                                text = activeAccount?.name ?: "Select Account",
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = TvSilverBright
                                             )
                                             Text(
-                                                text = "Balance: ${acc.currency}${DecimalFormat("#,##0.00").format(acc.currentBalance)}",
+                                                text = "${if (activeAccount?.isPropFirm == true) "Prop Account" else "Personal Account"} • ${activeAccount?.currency ?: "$"}${DecimalFormat("#,##0.00").format(stats?.currentBalance ?: activeAccount?.currentBalance ?: 5000.0)}",
                                                 fontSize = 11.sp,
                                                 color = TvSilver
                                             )
                                         }
+                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = TvSilver
+                                    )
+                                }
+                            }
+
+                            DropdownMenu(
+                                expanded = accountDropdownExpanded,
+                                onDismissRequest = { accountDropdownExpanded = false }
+                            ) {
+                                uiState.availableAccounts.forEach { acc ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(
+                                                    text = acc.name,
+                                                    fontWeight = if (acc.id == uiState.selectedAccountId) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                                Text(
+                                                    text = "Balance: ${acc.currency}${DecimalFormat("#,##0.00").format(acc.currentBalance)}",
+                                                    fontSize = 11.sp,
+                                                    color = TvSilver
+                                                )
+                                            }
+                                        },
+                                        onClick = {
+                                            onSelectAccount(acc.id)
+                                            accountDropdownExpanded = false
+                                        }
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(Icons.Default.Add, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(18.dp))
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text("Add New Account", fontWeight = FontWeight.Bold, color = TvPurpleGlow)
+                                        }
                                     },
                                     onClick = {
-                                        onSelectAccount(acc.id)
                                         accountDropdownExpanded = false
+                                        onOpenAddAccount()
                                     }
                                 )
                             }
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(Icons.Default.Add, contentDescription = null, tint = TvPurpleGlow, modifier = Modifier.size(18.dp))
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Add New Account", fontWeight = FontWeight.Bold, color = TvPurpleGlow)
-                                    }
-                                },
-                                onClick = {
-                                    accountDropdownExpanded = false
-                                    onOpenAddAccount()
-                                }
-                            )
                         }
-                    }
 
-                    // Edit Account Button
-                    IconButton(
-                        onClick = onOpenEditAccount,
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
-                    ) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit Account", tint = TvSilver)
-                    }
-
-                    // Delete Account Button (only if more than 1 account)
-                    if (uiState.availableAccounts.size > 1) {
-                        IconButton(
-                            onClick = onOpenDeleteAccount,
+                        // Edit Account Button
+                        Surface(
                             modifier = Modifier
-                                .size(44.dp)
-                                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                                .size(46.dp)
+                                .terminalGlass(
+                                    shape = RoundedCornerShape(12.dp),
+                                    backgroundColor = Color(0x99181128),
+                                    borderColor = TvDarkSurfaceBorder
+                                )
+                                .tactileClickable(onClick = onOpenEditAccount),
+                            color = Color.Transparent
                         ) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete Account", tint = TvLossColor)
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit Account", tint = TvSilver, modifier = Modifier.size(20.dp))
+                            }
+                        }
+
+                        // Delete Account Button (only if more than 1 account)
+                        if (uiState.availableAccounts.size > 1) {
+                            Surface(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .terminalGlass(
+                                        shape = RoundedCornerShape(12.dp),
+                                        backgroundColor = TvLossContainer.copy(alpha = 0.4f),
+                                        borderColor = TvLossContainerBorder
+                                    )
+                                    .tactileClickable(onClick = onOpenDeleteAccount),
+                                color = Color.Transparent
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete Account", tint = TvLossColor, modifier = Modifier.size(20.dp))
+                                }
+                            }
                         }
                     }
                 }
+
+                // Section 2: Account Overview Dashboard Card
+                if (stats != null && activeAccount != null) {
+                    AccountDashboardCard(
+                        stats = stats,
+                        onAdjustBalance = onOpenAdjustBalance,
+                        onEditRules = onOpenEditAccount
+                    )
+                }
+
+                // Section 3: Personal Discipline Guard
+                DisciplineCard(
+                    discipline = uiState.disciplineSettings,
+                    todayTrades = stats?.todayTradesCount ?: 0,
+                    todayPnl = stats?.todayPnl ?: 0.0,
+                    isSessionLimit = uiState.isSessionLimitExceeded,
+                    isLossStop = uiState.isDailyLossStopExceeded,
+                    isProfitStop = uiState.isDailyProfitStopReached,
+                    onEdit = onOpenEditDiscipline
+                )
+
+                // Section 4: Data Management & Calculator Preferences
+                SettingsSection(
+                    calculatorSettings = uiState.calculatorSettings,
+                    onEditCalculator = onOpenEditCalculator,
+                    onExportCsv = onExportCsv,
+                    onExportJson = onExportJson,
+                    onImportJson = onImportJson
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
-            // Section 2: Account Overview Dashboard Card
-            if (stats != null && activeAccount != null) {
-                AccountDashboardCard(
-                    stats = stats,
-                    onAdjustBalance = onOpenAdjustBalance,
-                    onEditRules = onOpenEditAccount
+            // Dialogs
+            if (uiState.showAddAccountDialog) {
+                AddEditAccountDialog(
+                    account = null,
+                    onSave = { onAddAccount(it) },
+                    onDismiss = onDismissDialogs
                 )
             }
 
-            // Section 3: Personal Discipline Guard
-            DisciplineCard(
-                discipline = uiState.disciplineSettings,
-                todayTrades = stats?.todayTradesCount ?: 0,
-                todayPnl = stats?.todayPnl ?: 0.0,
-                isSessionLimit = uiState.isSessionLimitExceeded,
-                isLossStop = uiState.isDailyLossStopExceeded,
-                isProfitStop = uiState.isDailyProfitStopReached,
-                onEdit = onOpenEditDiscipline
-            )
+            if (uiState.showEditAccountDialog && activeAccount != null) {
+                AddEditAccountDialog(
+                    account = activeAccount,
+                    onSave = { onSaveAccount(it) },
+                    onDismiss = onDismissDialogs
+                )
+            }
 
-            // Section 4: Data Management & Calculator Preferences
-            SettingsSection(
-                calculatorSettings = uiState.calculatorSettings,
-                onEditCalculator = onOpenEditCalculator,
-                onExportCsv = onExportCsv,
-                onExportJson = onExportJson,
-                onImportJson = onImportJson
-            )
+            if (uiState.showDeleteAccountDialog && activeAccount != null) {
+                DeleteAccountDialog(
+                    accountToDelete = activeAccount,
+                    otherAccounts = uiState.availableAccounts.filter { it.id != activeAccount.id },
+                    onConfirmDelete = { moveTradesToId ->
+                        onDeleteAccount(activeAccount.id, moveTradesToId)
+                    },
+                    onDismiss = onDismissDialogs
+                )
+            }
 
-            Spacer(modifier = Modifier.height(32.dp))
-        }
+            if (uiState.showAdjustBalanceDialog && activeAccount != null) {
+                AdjustBalanceDialog(
+                    currentStarting = activeAccount.startingBalance,
+                    currency = activeAccount.currency,
+                    onSave = { onAdjustBalance(it) },
+                    onDismiss = onDismissDialogs
+                )
+            }
 
-        // Dialogs
-        if (uiState.showAddAccountDialog) {
-            AddEditAccountDialog(
-                account = null,
-                onSave = { onAddAccount(it) },
-                onDismiss = onDismissDialogs
-            )
-        }
+            if (uiState.showEditDisciplineDialog) {
+                EditDisciplineDialog(
+                    current = uiState.disciplineSettings,
+                    onSave = onSaveDiscipline,
+                    onDismiss = onDismissDialogs
+                )
+            }
 
-        if (uiState.showEditAccountDialog && activeAccount != null) {
-            AddEditAccountDialog(
-                account = activeAccount,
-                onSave = { onSaveAccount(it) },
-                onDismiss = onDismissDialogs
-            )
-        }
-
-        if (uiState.showDeleteAccountDialog && activeAccount != null) {
-            DeleteAccountDialog(
-                accountToDelete = activeAccount,
-                otherAccounts = uiState.availableAccounts.filter { it.id != activeAccount.id },
-                onConfirmDelete = { moveTradesToId ->
-                    onDeleteAccount(activeAccount.id, moveTradesToId)
-                },
-                onDismiss = onDismissDialogs
-            )
-        }
-
-        if (uiState.showAdjustBalanceDialog && activeAccount != null) {
-            AdjustBalanceDialog(
-                currentStarting = activeAccount.startingBalance,
-                currency = activeAccount.currency,
-                onSave = { onAdjustBalance(it) },
-                onDismiss = onDismissDialogs
-            )
-        }
-
-        if (uiState.showEditDisciplineDialog) {
-            EditDisciplineDialog(
-                current = uiState.disciplineSettings,
-                onSave = onSaveDiscipline,
-                onDismiss = onDismissDialogs
-            )
-        }
-
-        if (uiState.showEditCalculatorDialog) {
-            EditCalculatorDialog(
-                current = uiState.calculatorSettings,
-                onSave = onSaveCalculator,
-                onDismiss = onDismissDialogs
-            )
+            if (uiState.showEditCalculatorDialog) {
+                EditCalculatorDialog(
+                    current = uiState.calculatorSettings,
+                    onSave = onSaveCalculator,
+                    onDismiss = onDismissDialogs
+                )
+            }
         }
     }
 }
@@ -494,11 +521,17 @@ private fun AccountDashboardCard(
     val pnlSign = if (pnl > 0) "+" else if (pnl < 0) "-" else ""
     val pnlPct = if (acc.startingBalance > 0) (pnl / acc.startingBalance) * 100.0 else 0.0
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(22.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.2.dp, TvPurplePrimary)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(22.dp),
+                backgroundColor = Color(0xDC0D0A17),
+                borderColor = TvPurplePrimary.copy(alpha = 0.7f),
+                specularHighlight = Color(0x50C084FC),
+                elevation = 6.dp
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -531,7 +564,7 @@ private fun AccountDashboardCard(
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = TvPlumContainer,
-                    border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+                    border = BorderStroke(1.dp, TvPlumContainerBorder)
                 ) {
                     Text(
                         text = if (acc.isPropFirm) "PROP RULES" else "PERSONAL",
@@ -591,8 +624,11 @@ private fun AccountDashboardCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        .terminalGlass(
+                            shape = RoundedCornerShape(14.dp),
+                            backgroundColor = Color(0x80140F24),
+                            borderColor = TvDarkSurfaceBorder
+                        )
                         .padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
@@ -619,10 +655,10 @@ private fun AccountDashboardCard(
                             progress = { (stats.profitTargetProgressPercent / 100.0).toFloat().coerceIn(0f, 1f) },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(8.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            color = TvWinColor,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp)),
+                            color = TvPurplePrimary,
+                            trackColor = Color(0xFF1E182E)
                         )
                     }
 
@@ -684,25 +720,43 @@ private fun AccountDashboardCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                OutlinedButton(
-                    onClick = onAdjustBalance,
-                    shape = RoundedCornerShape(12.dp),
-                    border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                    modifier = Modifier.weight(1f)
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(12.dp),
+                            backgroundColor = Color(0x601A142A),
+                            borderColor = TvDarkSurfaceBorder
+                        )
+                        .tactileClickable(onClick = onAdjustBalance),
+                    color = Color.Transparent
                 ) {
-                    Text("Adjust Balance", fontSize = 12.sp)
+                    Box(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Adjust Balance", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = TvSilverBright)
+                    }
                 }
 
-                Button(
-                    onClick = onEditRules,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = TvPurplePrimary,
-                        contentColor = Color.White
-                    ),
-                    modifier = Modifier.weight(1f)
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(12.dp),
+                            backgroundColor = TvPurplePrimary,
+                            borderColor = TvPurpleGlow.copy(alpha = 0.5f),
+                            specularHighlight = Color(0x60C084FC)
+                        )
+                        .tactileClickable(onClick = onEditRules),
+                    color = Color.Transparent
                 ) {
-                    Text("Edit Rules", fontSize = 12.sp)
+                    Box(
+                        modifier = Modifier.padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("Edit Rules", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
                 }
             }
         }
@@ -718,10 +772,13 @@ private fun MetricBox(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
         modifier = modifier
+            .terminalGlass(
+                shape = RoundedCornerShape(12.dp),
+                backgroundColor = Color(0x99151022),
+                borderColor = TvDarkSurfaceBorder
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier.padding(12.dp),
@@ -761,11 +818,16 @@ private fun DisciplineCard(
     isProfitStop: Boolean,
     onEdit: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = TvDarkSurfaceBorder,
+                specularHighlight = Color(0x30C084FC)
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -787,15 +849,27 @@ private fun DisciplineCard(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Discipline & Psychology Guard",
-                        fontSize = 15.sp,
+                        text = "Discipline & Risk Guard",
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = TvSilverBright
                     )
                 }
 
-                IconButton(onClick = onEdit, modifier = Modifier.size(24.dp)) {
-                    Icon(Icons.Default.Edit, contentDescription = "Edit Rules", tint = TvSilver, modifier = Modifier.size(16.dp))
+                Surface(
+                    modifier = Modifier
+                        .size(30.dp)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(8.dp),
+                            backgroundColor = Color(0x991C142E),
+                            borderColor = TvDarkSurfaceBorder
+                        )
+                        .tactileClickable(onClick = onEdit),
+                    color = Color.Transparent
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Edit, contentDescription = "Edit Rules", tint = TvSilver, modifier = Modifier.size(14.dp))
+                    }
                 }
             }
 
@@ -827,9 +901,9 @@ private fun DisciplineCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = "Max Trades / Day: ${discipline.maxTradesPerSession}", fontSize = 12.sp, color = TvSilver)
-                Text(text = "Daily Loss Stop: $${discipline.dailyLossStop.toInt()}", fontSize = 12.sp, color = TvSilver)
-                Text(text = "Profit Stop: $${discipline.dailyProfitStop.toInt()}", fontSize = 12.sp, color = TvSilver)
+                Text(text = "Max Trades / Day: ${discipline.maxTradesPerSession}", fontSize = 11.sp, color = TvSilver)
+                Text(text = "Daily Loss Stop: $${discipline.dailyLossStop.toInt()}", fontSize = 11.sp, color = TvSilver)
+                Text(text = "Profit Stop: $${discipline.dailyProfitStop.toInt()}", fontSize = 11.sp, color = TvSilver)
             }
         }
     }
@@ -862,11 +936,16 @@ private fun SettingsSection(
     onExportJson: () -> Unit,
     onImportJson: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = TvDarkSurfaceBorder,
+                specularHighlight = Color(0x30C084FC)
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -876,7 +955,7 @@ private fun SettingsSection(
         ) {
             Text(
                 text = "Preferences & Data Backup",
-                fontSize = 15.sp,
+                fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
                 color = TvSilverBright
             )
@@ -884,10 +963,15 @@ private fun SettingsSection(
             // Calculator settings row
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onEditCalculator)
+                    .terminalGlass(
+                        shape = RoundedCornerShape(12.dp),
+                        backgroundColor = Color(0x80181128),
+                        borderColor = TvDarkSurfaceBorder
+                    )
+                    .tactileClickable(onClick = onEditCalculator),
+                color = Color.Transparent
             ) {
                 Row(
                     modifier = Modifier
@@ -917,10 +1001,15 @@ private fun SettingsSection(
                 // Export CSV Row
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onExportCsv)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(12.dp),
+                            backgroundColor = Color(0x80181128),
+                            borderColor = TvDarkSurfaceBorder
+                        )
+                        .tactileClickable(onClick = onExportCsv),
+                    color = Color.Transparent
                 ) {
                     Row(
                         modifier = Modifier
@@ -963,10 +1052,15 @@ private fun SettingsSection(
                 // Backup Database (JSON)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onExportJson)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(12.dp),
+                            backgroundColor = Color(0x80181128),
+                            borderColor = TvDarkSurfaceBorder
+                        )
+                        .tactileClickable(onClick = onExportJson),
+                    color = Color.Transparent
                 ) {
                     Row(
                         modifier = Modifier
@@ -1009,10 +1103,15 @@ private fun SettingsSection(
                 // Restore Database (JSON)
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClick = onImportJson)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(12.dp),
+                            backgroundColor = Color(0x80181128),
+                            borderColor = TvDarkSurfaceBorder
+                        )
+                        .tactileClickable(onClick = onImportJson),
+                    color = Color.Transparent
                 ) {
                     Row(
                         modifier = Modifier

@@ -21,8 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -57,6 +55,7 @@ import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
+import com.example.xauusdlotsizecalculator.theme.terminalGlass
 import com.example.xauusdlotsizecalculator.ui.calculator.SlInputMode
 import java.text.DecimalFormat
 
@@ -94,13 +93,17 @@ fun CalculatorInputs(
     var accountDropdownExpanded by remember { mutableStateOf(false) }
     val selectedAccount = availableAccounts.firstOrNull { it.id == selectedAccountId }
 
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = TvDarkSurfaceBorder,
+                specularHighlight = Color(0x35C084FC),
+                elevation = 4.dp
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -113,8 +116,9 @@ fun CalculatorInputs(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         text = "Trading Account",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.5.sp,
                         color = TvSilver
                     )
                     Box(modifier = Modifier.fillMaxWidth()) {
@@ -123,7 +127,7 @@ fun CalculatorInputs(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(12.dp))
                                 .clickable { accountDropdownExpanded = true },
-                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            color = Color(0x80181226),
                             border = BorderStroke(1.dp, TvDarkSurfaceBorder),
                             shape = RoundedCornerShape(12.dp)
                         ) {
@@ -216,7 +220,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (isSelected) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
@@ -273,7 +277,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (isSelected) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
@@ -315,7 +319,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (slMode == SlInputMode.PRICE) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
@@ -328,7 +332,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (slMode == SlInputMode.PERCENT) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
@@ -380,7 +384,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (tpMode == SlInputMode.PRICE) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
@@ -393,7 +397,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (tpMode == SlInputMode.PERCENT) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder)
@@ -425,9 +429,10 @@ fun CalculatorInputs(
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     text = "Broker Lot Step",
-                    fontSize = 12.sp,
-                    color = TvSilver,
-                    fontWeight = FontWeight.Medium
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.5.sp,
+                    color = TvSilver
                 )
 
                 Row(
@@ -450,7 +455,7 @@ fun CalculatorInputs(
                             colors = FilterChipDefaults.filterChipColors(
                                 selectedContainerColor = TvPlumContainer,
                                 selectedLabelColor = TvPurpleGlow,
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                containerColor = Color(0x66181124),
                                 labelColor = TvSilver
                             ),
                             border = if (isSelected) BorderStroke(1.dp, TvPurplePrimary) else BorderStroke(1.dp, TvDarkSurfaceBorder),
@@ -534,10 +539,10 @@ private fun TradingInputField(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = TvPurplePrimary,
                 unfocusedBorderColor = TvDarkSurfaceBorder,
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                focusedContainerColor = Color(0xCC1A132B),
+                unfocusedContainerColor = Color(0x80140F22),
                 errorBorderColor = TvSilver,
-                errorContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                errorContainerColor = Color(0x80140F22)
             ),
             modifier = Modifier.fillMaxWidth()
         )

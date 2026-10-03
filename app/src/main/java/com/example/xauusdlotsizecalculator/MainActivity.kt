@@ -5,9 +5,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -16,7 +22,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.xauusdlotsizecalculator.theme.TerminalBackground
 import com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme
 import com.example.xauusdlotsizecalculator.ui.account.AccountScreen
 import com.example.xauusdlotsizecalculator.ui.account.AccountViewModel
@@ -80,27 +88,43 @@ fun TradeLogApp(
     accountContent: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        bottomBar = {
-            TradeLogBottomNav(
-                selectedTab = selectedTab,
-                onTabSelected = onTabSelected
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            when (selectedTab) {
-                TradeLogTab.CALCULATOR -> calculatorContent()
-                TradeLogTab.JOURNAL -> journalContent()
-                TradeLogTab.ANALYTICS -> analyticsContent()
-                TradeLogTab.ACCOUNT -> accountContent()
+    TerminalBackground(modifier = modifier) {
+        Scaffold(
+            bottomBar = {
+                TradeLogBottomNav(
+                    selectedTab = selectedTab,
+                    onTabSelected = onTabSelected
+                )
+            },
+            containerColor = Color.Transparent,
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
+                color = Color.Transparent
+            ) {
+                AnimatedContent(
+                    targetState = selectedTab,
+                    transitionSpec = {
+                        if (targetState.ordinal > initialState.ordinal) {
+                            (slideInHorizontally(tween(220)) { width -> width / 4 } + fadeIn(tween(220)))
+                                .togetherWith(slideOutHorizontally(tween(180)) { width -> -width / 4 } + fadeOut(tween(180)))
+                        } else {
+                            (slideInHorizontally(tween(220)) { width -> -width / 4 } + fadeIn(tween(220)))
+                                .togetherWith(slideOutHorizontally(tween(180)) { width -> width / 4 } + fadeOut(tween(180)))
+                        }
+                    },
+                    label = "tabTransition"
+                ) { tab ->
+                    when (tab) {
+                        TradeLogTab.CALCULATOR -> calculatorContent()
+                        TradeLogTab.JOURNAL -> journalContent()
+                        TradeLogTab.ANALYTICS -> analyticsContent()
+                        TradeLogTab.ACCOUNT -> accountContent()
+                    }
+                }
             }
         }
     }

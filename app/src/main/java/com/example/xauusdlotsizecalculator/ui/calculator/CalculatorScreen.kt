@@ -40,6 +40,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -54,6 +57,13 @@ import com.example.xauusdlotsizecalculator.domain.model.LotStep
 import com.example.xauusdlotsizecalculator.domain.model.PropFirmSettings
 import com.example.xauusdlotsizecalculator.domain.model.Trade
 import com.example.xauusdlotsizecalculator.domain.model.TradeDirection
+import com.example.xauusdlotsizecalculator.theme.TerminalBackground
+import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
+import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
+import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
+import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
+import com.example.xauusdlotsizecalculator.theme.TvSilver
+import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme
 import com.example.xauusdlotsizecalculator.ui.calculator.components.CalculationDetailsCard
 import com.example.xauusdlotsizecalculator.ui.calculator.components.CalculatorInputs
@@ -144,192 +154,209 @@ fun CalculatorScreenContent(
         }
     }
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(end = 8.dp)
+    TerminalBackground(modifier = modifier) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = TvPlumContainer,
+                                border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.5f)),
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    text = "TERMINAL",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.2.sp,
+                                    color = TvPurpleGlow,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                             Text(
-                                text = "TRADELOG",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                text = "Position Sizing Engine",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                color = Color.White
                             )
                         }
-                        Text(
-                            text = "XAUUSD Calculator",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = onResetClick) {
+                    },
+                    actions = {
+                        IconButton(onClick = onResetClick) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Reset",
+                                tint = TvSilverBright
+                            )
+                        }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = TvSilverBright
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = Color.Transparent,
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Direction Selector: BUY / SELL
+                DirectionSelector(
+                    selectedDirection = uiState.direction,
+                    onDirectionSelected = onDirectionChange
+                )
+
+                // Primary Inputs Card
+                CalculatorInputs(
+                    pair = uiState.pairInput,
+                    onPairChange = onPairChange,
+                    availableAccounts = uiState.availableAccounts,
+                    selectedAccountId = uiState.selectedAccountId,
+                    onSelectAccount = onSelectAccount,
+                    balance = uiState.balanceInput,
+                    onBalanceChange = onBalanceChange,
+                    riskPercent = uiState.riskPercentInput,
+                    onRiskPercentChange = onRiskPercentChange,
+                    onPresetRiskSelected = onPresetRiskSelected,
+                    entryPrice = uiState.entryPriceInput,
+                    onEntryPriceChange = onEntryPriceChange,
+                    slPercent = uiState.slPercentInput,
+                    onSlPercentChange = onSlPercentChange,
+                    slPrice = uiState.slPriceInput,
+                    onSlPriceChange = onSlPriceChange,
+                    tpPrice = uiState.tpPriceInput,
+                    onTpPriceChange = onTpPriceChange,
+                    tpPercent = uiState.tpPercentInput,
+                    onTpPercentChange = onTpPercentChange,
+                    slMode = uiState.slMode,
+                    onSlModeChange = onSlModeChange,
+                    tpMode = uiState.tpMode,
+                    onTpModeChange = onTpModeChange,
+                    selectedLotStep = uiState.lotStep,
+                    onLotStepChange = onLotStepChange,
+                    validation = uiState.validation
+                )
+
+                // Action Buttons (Calculate & Reset)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onResetClick,
+                        shape = RoundedCornerShape(14.dp),
+                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = TvSilverBright
+                        ),
+                        modifier = Modifier.height(50.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Refresh,
-                            contentDescription = "Reset",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
                         )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Reset")
                     }
-                    IconButton(onClick = onOpenSettings) {
+
+                    Button(
+                        onClick = onCalculateClick,
+                        shape = RoundedCornerShape(14.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = TvPurplePrimary,
+                            contentColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp)
+                            .drawBehind {
+                                drawLine(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(Color.Transparent, Color.White.copy(alpha = 0.35f), Color.Transparent)
+                                    ),
+                                    start = androidx.compose.ui.geometry.Offset(16.dp.toPx(), 1f),
+                                    end = androidx.compose.ui.geometry.Offset(size.width - 16.dp.toPx(), 1f),
+                                    strokeWidth = 1.2f
+                                )
+                            }
+                    ) {
                         Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            imageVector = Icons.Default.Calculate,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Calculate Lot Size",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // Direction Selector: BUY / SELL
-            DirectionSelector(
-                selectedDirection = uiState.direction,
-                onDirectionSelected = onDirectionChange
-            )
-
-            // Primary Inputs Card
-            CalculatorInputs(
-                pair = uiState.pairInput,
-                onPairChange = onPairChange,
-                availableAccounts = uiState.availableAccounts,
-                selectedAccountId = uiState.selectedAccountId,
-                onSelectAccount = onSelectAccount,
-                balance = uiState.balanceInput,
-                onBalanceChange = onBalanceChange,
-                riskPercent = uiState.riskPercentInput,
-                onRiskPercentChange = onRiskPercentChange,
-                onPresetRiskSelected = onPresetRiskSelected,
-                entryPrice = uiState.entryPriceInput,
-                onEntryPriceChange = onEntryPriceChange,
-                slPercent = uiState.slPercentInput,
-                onSlPercentChange = onSlPercentChange,
-                slPrice = uiState.slPriceInput,
-                onSlPriceChange = onSlPriceChange,
-                tpPrice = uiState.tpPriceInput,
-                onTpPriceChange = onTpPriceChange,
-                tpPercent = uiState.tpPercentInput,
-                onTpPercentChange = onTpPercentChange,
-                slMode = uiState.slMode,
-                onSlModeChange = onSlModeChange,
-                tpMode = uiState.tpMode,
-                onTpModeChange = onTpModeChange,
-                selectedLotStep = uiState.lotStep,
-                onLotStepChange = onLotStepChange,
-                validation = uiState.validation
-            )
-
-            // Action Buttons (Calculate & Reset)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                OutlinedButton(
-                    onClick = onResetClick,
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-                    modifier = Modifier.height(52.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Reset")
                 }
 
-                Button(
-                    onClick = onCalculateClick,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
+                // Results Card
+                ResultCard(
+                    result = uiState.result,
+                    onCopyFeedback = onCopyFeedback,
+                    isPropFirmLimitExceeded = uiState.isPropFirmLimitExceeded,
+                    propFirmWarningMessage = uiState.propFirmWarningMessage,
+                    propFirmRiskAtLimitText = uiState.propFirmRiskAtLimitText,
+                    onSaveAsTrade = onSaveAsTrade
+                )
+
+                // Transparent Calculation Details (Expandable)
+                CalculationDetailsCard(
+                    result = uiState.result,
+                    isExpanded = uiState.isDetailsExpanded,
+                    onToggleExpanded = onToggleDetails
+                )
+
+                // Offline Guarantee & Footer Note
+                Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp)
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Calculate,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Calculate Lot Size",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
+                        text = "TradeLog • Precision Sizing • Zero Network Tracking",
+                        fontSize = 11.sp,
+                        color = TvSilver.copy(alpha = 0.5f)
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Results Card
-            ResultCard(
-                result = uiState.result,
-                onCopyFeedback = onCopyFeedback,
-                isPropFirmLimitExceeded = uiState.isPropFirmLimitExceeded,
-                propFirmWarningMessage = uiState.propFirmWarningMessage,
-                propFirmRiskAtLimitText = uiState.propFirmRiskAtLimitText,
-                onSaveAsTrade = onSaveAsTrade
-            )
-
-            // Transparent Calculation Details (Expandable)
-            CalculationDetailsCard(
-                result = uiState.result,
-                isExpanded = uiState.isDetailsExpanded,
-                onToggleExpanded = onToggleDetails
-            )
-
-            // Offline Guarantee & Footer Note
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "TradeLog • 100% Offline • Zero Network Tracking",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            // Settings Modal Bottom Sheet
+            if (uiState.showSettingsSheet) {
+                SettingsBottomSheet(
+                    sheetState = sheetState,
+                    currentSettings = uiState.settings,
+                    onSave = onSaveSettings,
+                    onDismiss = onCloseSettings
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-        }
-
-        // Settings Modal Bottom Sheet
-        if (uiState.showSettingsSheet) {
-            SettingsBottomSheet(
-                sheetState = sheetState,
-                currentSettings = uiState.settings,
-                onSave = onSaveSettings,
-                onDismiss = onCloseSettings
-            )
         }
     }
 }
@@ -363,60 +390,6 @@ fun CalculatorScreenPreview() {
                 direction = TradeDirection.BUY,
                 result = sampleResult,
                 propFirmSettings = PropFirmSettings()
-            ),
-            onBalanceChange = {},
-            onRiskPercentChange = {},
-            onPresetRiskSelected = {},
-            onEntryPriceChange = {},
-            onSlPercentChange = {},
-            onSlPriceChange = {},
-            onTpPriceChange = {},
-            onSlModeChange = {},
-            onDirectionChange = {},
-            onLotStepChange = {},
-            onRoundingModeChange = {},
-            onCalculateClick = {},
-            onResetClick = {},
-            onToggleDetails = {},
-            onOpenSettings = {},
-            onCloseSettings = {},
-            onSaveSettings = {},
-            onSaveAsTrade = {},
-            onCopyFeedback = {},
-            onSnackbarDismissed = {}
-        )
-    }
-}
-
-@Preview(name = "Calculator Screen - Prop Limit Warning", showBackground = true)
-@Composable
-fun CalculatorScreenPropWarningPreview() {
-    val sampleInput = CalculationInput(
-        balance = BigDecimal("5000"),
-        riskPercent = BigDecimal("2"), // $100 risk with 2 pt SL -> 0.50 lots
-        entryPrice = BigDecimal("2650.00"),
-        slPercent = BigDecimal("0.07547"),
-        direction = TradeDirection.BUY,
-        contractSize = BigDecimal("100"),
-        lotStep = LotStep.STEP_0_01,
-        roundingMode = LotRoundingMode.ROUND_DOWN,
-        slPrice = BigDecimal("2648.00")
-    )
-    val sampleResult = XauusdLotCalculator.calculate(sampleInput)
-
-    XAUUSDLotSizeCalculatorTheme(darkTheme = true) {
-        CalculatorScreenContent(
-            uiState = CalculatorUiState(
-                balanceInput = "5000",
-                riskPercentInput = "2",
-                entryPriceInput = "2650.00",
-                slPriceInput = "2648.00",
-                slPercentInput = "0.075",
-                direction = TradeDirection.BUY,
-                result = sampleResult,
-                isPropFirmLimitExceeded = true,
-                propFirmWarningMessage = "Maximum simultaneous Gold volume:\n0.20 lots",
-                propFirmRiskAtLimitText = "At max 0.20 lots, actual risk is $40.00 (0.80%) instead of $100.00"
             ),
             onBalanceChange = {},
             onRiskPercentChange = {},

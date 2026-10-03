@@ -38,6 +38,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import com.example.xauusdlotsizecalculator.theme.AnimatedNumericalValue
+import com.example.xauusdlotsizecalculator.theme.TerminalBackground
+import com.example.xauusdlotsizecalculator.theme.tactileClickable
+import com.example.xauusdlotsizecalculator.theme.terminalGlass
+
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -110,61 +115,67 @@ fun AnalyticsScreenContent(
     val currentAccount = accounts.firstOrNull { it.id == selectedAccountId } ?: accounts.firstOrNull()
     val selectedAccountName = currentAccount?.name ?: "Select Account"
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(6.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            modifier = Modifier.padding(end = 8.dp)
+    TerminalBackground(modifier = modifier) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
                         ) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = TvPlumContainer,
+                                border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.5f)),
+                                modifier = Modifier.padding(end = 8.dp)
+                            ) {
+                                Text(
+                                    text = "QUANT EDGE",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.2.sp,
+                                    color = TvPurpleGlow,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                             Text(
-                                text = "EDGE",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                text = "Performance Analytics",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 17.sp,
+                                color = Color.White
                             )
                         }
-                        Text(
-                            text = "Analytics",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
-            )
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+            },
+            containerColor = Color.Transparent,
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
             // Account Filter Chooser
             Box(modifier = Modifier.fillMaxWidth()) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .clickable { accountDropdownExpanded = true },
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = BorderStroke(1.dp, TvPurplePrimary.copy(alpha = 0.6f)),
-                    shape = RoundedCornerShape(14.dp)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(14.dp),
+                            backgroundColor = Color(0xCC110D1E),
+                            borderColor = TvPurplePrimary.copy(alpha = 0.5f),
+                            specularHighlight = Color(0x30C084FC)
+                        )
+                        .tactileClickable { accountDropdownExpanded = true },
+                    color = Color.Transparent
                 ) {
                     Row(
                         modifier = Modifier
@@ -186,6 +197,7 @@ fun AnalyticsScreenContent(
                                     text = "ACCOUNT FILTER",
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.8.sp,
                                     color = TvSilver
                                 )
                                 Text(
@@ -245,6 +257,7 @@ fun AnalyticsScreenContent(
         }
     }
 }
+}
 
 @Composable
 private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary) {
@@ -252,14 +265,20 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
     val (statusColor, containerColor, borderColor) = when (daily.status) {
         DayPerformanceStatus.POSITIVE -> Triple(TvWinColor, TvWinContainer, TvWinContainerBorder)
         DayPerformanceStatus.NEGATIVE -> Triple(TvLossColor, TvLossContainer, TvLossContainerBorder)
-        DayPerformanceStatus.NO_TRADES -> Triple(TvSilver, MaterialTheme.colorScheme.surfaceVariant, TvDarkSurfaceBorder)
+        DayPerformanceStatus.NO_TRADES -> Triple(TvSilver, Color(0x66181124), TvDarkSurfaceBorder)
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.2.dp, borderColor)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0E0A16),
+                borderColor = borderColor,
+                specularHighlight = if (daily.status == DayPerformanceStatus.POSITIVE) Color(0x60C084FC) else Color(0x30E5E7EB),
+                elevation = 4.dp
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -283,9 +302,9 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "TODAY'S PERFORMANCE",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 1.2.sp,
                         color = TvSilver
                     )
                 }
@@ -313,13 +332,13 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
             ) {
                 Column {
                     val sign = if (daily.netProfitLoss > 0) "+" else if (daily.netProfitLoss < 0) "-" else ""
-                    Text(
-                        text = if (daily.tradeCount == 0) "$0.00" else "$sign$${DecimalFormat("#,##0.00").format(Math.abs(daily.netProfitLoss))}",
+                    AnimatedNumericalValue(
+                        value = if (daily.tradeCount == 0) "$0.00" else "$sign$${DecimalFormat("#,##0.00").format(Math.abs(daily.netProfitLoss))}",
                         style = FinancialNumericStyle.copy(fontSize = 32.sp, color = statusColor)
                     )
 
                     Text(
-                        text = "Today's Net P/L",
+                        text = "Today's Net Realized P/L",
                         fontSize = 12.sp,
                         color = TvSilver
                     )
@@ -353,7 +372,8 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
             if (daily.tradeCount > 0 && (daily.bestTrade != null || daily.worstTrade != null)) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    color = Color(0x66181124),
+                    border = BorderStroke(1.dp, TvDarkSurfaceBorder),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -393,11 +413,17 @@ private fun DailyPerformanceCard(summary: com.example.xauusdlotsizecalculator.do
 
 @Composable
 private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.model.AnalyticsSummary) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = TvDarkSurfaceBorder,
+                specularHighlight = Color(0x40C084FC),
+                elevation = 4.dp
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -415,9 +441,9 @@ private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.m
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "LIFETIME OVERVIEW",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.2.sp,
                     color = TvSilver
                 )
             }
@@ -498,11 +524,16 @@ private fun OverallKpiCard(summary: com.example.xauusdlotsizecalculator.domain.m
 
 @Composable
 private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = TvDarkSurfaceBorder,
+                specularHighlight = Color(0x30C084FC)
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -517,9 +548,9 @@ private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
             ) {
                 Text(
                     text = "SETUP PERFORMANCE (EDGE)",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 1.2.sp,
                     color = TvSilver
                 )
 
@@ -544,9 +575,14 @@ private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .terminalGlass(
+                                shape = RoundedCornerShape(12.dp),
+                                backgroundColor = Color(0x80161026),
+                                borderColor = if (index == 0 && s.netProfitLoss > 0) TvWinContainerBorder else TvDarkSurfaceBorder
+                            ),
+                        color = Color.Transparent
                     ) {
                         Row(
                             modifier = Modifier
@@ -567,7 +603,8 @@ private fun SetupPerformanceSection(setups: List<SetupPerformance>) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Surface(
                                             shape = RoundedCornerShape(4.dp),
-                                            color = TvWinContainer
+                                            color = TvWinContainer,
+                                            border = BorderStroke(1.dp, TvWinContainerBorder)
                                         ) {
                                             Text(
                                                 text = "TOP EDGE",
@@ -618,11 +655,16 @@ private fun MistakeImpactSection(
     totalTrades: Int = 0,
     capitalDrain: Double = 0.0
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .terminalGlass(
+                shape = RoundedCornerShape(20.dp),
+                backgroundColor = Color(0xDC0C0A15),
+                borderColor = TvDarkSurfaceBorder,
+                specularHighlight = Color(0x30C084FC)
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -659,9 +701,9 @@ private fun MistakeImpactSection(
                     Column {
                         Text(
                             text = "MY MISTAKES (LEAK TRACKER)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.sp,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 1.2.sp,
                             color = TvSilverBright
                         )
                         Text(
@@ -693,9 +735,14 @@ private fun MistakeImpactSection(
             if (mistakes.isEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
-                    color = TvPlumContainer.copy(alpha = 0.5f),
-                    border = BorderStroke(1.dp, TvPlumContainerBorder),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .terminalGlass(
+                            shape = RoundedCornerShape(14.dp),
+                            backgroundColor = Color(0x80181128),
+                            borderColor = TvPlumContainerBorder
+                        ),
+                    color = Color.Transparent
                 ) {
                     Row(
                         modifier = Modifier
@@ -747,10 +794,14 @@ private fun MistakeImpactSection(
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .terminalGlass(
+                                shape = RoundedCornerShape(12.dp),
+                                backgroundColor = Color(0x99151022),
+                                borderColor = TvDarkSurfaceBorder
+                            ),
+                        color = Color.Transparent
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                             Text(
@@ -781,10 +832,14 @@ private fun MistakeImpactSection(
                     }
 
                     Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .terminalGlass(
+                                shape = RoundedCornerShape(12.dp),
+                                backgroundColor = Color(0x99151022),
+                                borderColor = TvDarkSurfaceBorder
+                            ),
+                        color = Color.Transparent
                     ) {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
                             Text(
@@ -828,9 +883,14 @@ private fun MistakeImpactSection(
 
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .terminalGlass(
+                                shape = RoundedCornerShape(14.dp),
+                                backgroundColor = Color(0x80181128),
+                                borderColor = TvDarkSurfaceBorder
+                            ),
+                        color = Color.Transparent
                     ) {
                         Column(
                             modifier = Modifier
@@ -1008,10 +1068,13 @@ private fun KpiMetricItem(
     valueColor: Color = TvSilverBright
 ) {
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, TvDarkSurfaceBorder),
         modifier = modifier
+            .terminalGlass(
+                shape = RoundedCornerShape(14.dp),
+                backgroundColor = Color(0x99161026),
+                borderColor = TvDarkSurfaceBorder
+            ),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier.padding(12.dp),

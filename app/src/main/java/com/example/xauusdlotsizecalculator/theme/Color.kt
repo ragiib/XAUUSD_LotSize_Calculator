@@ -78,6 +78,20 @@ val TvWarningText = Color(0xFFD8B4FE)
 val TvGoldAccent = Color(0xFFC084FC)       // Purple accent for stars / quality
 val TvGoldBadgeContainer = Color(0xFF230826)
 
+// Terminal Hardware Glassmorphism Palette
+val TerminalObsidian = Color(0xFF06050A)
+val TerminalGlassBase = Color(0xDC0C0A14)
+val TerminalGlassSecondary = Color(0x99120F1D)
+val TerminalGlassActive = Color(0xF0181128)
+val TerminalSpecularHighlight = Color(0x66C084FC)
+val TerminalSpecularBorder = Color(0xFF4C1D95)
+
+// Terminal Destructive Action Tokens (for Delete Trade confirmation)
+val TerminalDestructiveRed = Color(0xFFEF4444)
+val TerminalDestructiveContainer = Color(0x33450A0A)
+val TerminalDestructiveBorder = Color(0x88EF4444)
+val TerminalDestructiveText = Color(0xFFFCA5A5)
+
 // Light fallback
 val TvLightBackground = Color(0xFFF8FAFC)
 val TvLightSurface = Color(0xFFFFFFFF)
@@ -85,3 +99,4 @@ val TvLightSurfaceElevated = Color(0xFFF3E8FF)
 val TvLightSurfaceBorder = Color(0xFFE9D5FF)
 val TvLightTextPrimary = Color(0xFF1E1B4B)
 val TvLightTextSecondary = Color(0xFF6B21A8)
+

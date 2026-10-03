@@ -8,11 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.font.FontFamily
-import com.example.xauusdlotsizecalculator.theme.TvLossColor
-import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
-import java.text.DecimalFormat
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.FilterList
@@ -57,7 +51,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -69,16 +65,23 @@ import com.example.xauusdlotsizecalculator.domain.model.SetupQuality
 import com.example.xauusdlotsizecalculator.domain.model.Trade
 import com.example.xauusdlotsizecalculator.domain.model.TradeDirection
 import com.example.xauusdlotsizecalculator.domain.model.TradeStatus
+import com.example.xauusdlotsizecalculator.theme.TerminalBackground
 import com.example.xauusdlotsizecalculator.theme.TvDarkSurfaceBorder
+import com.example.xauusdlotsizecalculator.theme.TvLossColor
 import com.example.xauusdlotsizecalculator.theme.TvPlumContainer
 import com.example.xauusdlotsizecalculator.theme.TvPurpleGlow
+import com.example.xauusdlotsizecalculator.theme.TvPurpleNumber
 import com.example.xauusdlotsizecalculator.theme.TvPurplePrimary
 import com.example.xauusdlotsizecalculator.theme.TvSilver
 import com.example.xauusdlotsizecalculator.theme.TvSilverBright
 import com.example.xauusdlotsizecalculator.theme.XAUUSDLotSizeCalculatorTheme
+import com.example.xauusdlotsizecalculator.theme.tactileClickable
+import com.example.xauusdlotsizecalculator.theme.terminalGlass
 import com.example.xauusdlotsizecalculator.ui.journal.components.AddEditTradeSheet
+import com.example.xauusdlotsizecalculator.ui.journal.components.DeleteTradeDialog
 import com.example.xauusdlotsizecalculator.ui.journal.components.TradeCard
 import com.example.xauusdlotsizecalculator.ui.journal.components.TradeDetailBottomSheet
+import java.text.DecimalFormat
 
 @Composable
 fun JournalScreen(
@@ -142,6 +145,9 @@ fun JournalScreenContent(
     var showSetupMenu by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
 
+    // Dedicated state for pending deletion (triggers DeleteTradeDialog)
+    var tradePendingDelete by remember { mutableStateOf<Trade?>(null) }
+
     LaunchedEffect(uiState.snackbarMessage) {
         uiState.snackbarMessage?.let { msg ->
             snackbarHostState.showSnackbar(msg)
@@ -152,346 +158,373 @@ fun JournalScreenContent(
     val activeAccount = accounts.firstOrNull { it.id == selectedAccountId } ?: accounts.firstOrNull()
     val selectedAccountName = activeAccount?.name ?: "All Accounts"
 
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { if (accounts.isNotEmpty()) showAccountMenu = true }
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = "JOURNAL",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.sp,
-                                color = TvSilver
-                            )
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
+    TerminalBackground(modifier = modifier) {
+        Scaffold(
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { if (accounts.isNotEmpty()) showAccountMenu = true }
+                                .padding(horizontal = 12.dp, vertical = 4.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Text(
-                                    text = selectedAccountName,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = TvPurpleGlow
+                                    text = "TRADE JOURNAL",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    letterSpacing = 1.4.sp,
+                                    color = TvSilver
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Icon(
-                                    imageVector = Icons.Default.ArrowDropDown,
-                                    contentDescription = "Switch Account",
-                                    tint = TvPurpleGlow,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
-
-                        DropdownMenu(
-                            expanded = showAccountMenu,
-                            onDismissRequest = { showAccountMenu = false }
-                        ) {
-                            accounts.forEach { acc ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = acc.name,
-                                            fontWeight = if (selectedAccountId == acc.id) FontWeight.Bold else FontWeight.Normal
-                                        )
-                                    },
-                                    onClick = {
-                                        onAccountFilterSelected(acc.id)
-                                        showAccountMenu = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                },
-                actions = {
-
-                    // Sort Menu Button
-                    Box {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = "Sort Trades",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
-                        ) {
-                            TradeSortOption.entries.forEach { opt ->
-                                DropdownMenuItem(
-                                    text = { Text(opt.displayName) },
-                                    onClick = {
-                                        onSortOptionSelected(opt)
-                                        showSortMenu = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    // Setup Filter Menu Button
-                    Box {
-                        IconButton(onClick = { showSetupMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.FilterList,
-                                contentDescription = "Filter Setup",
-                                tint = if (uiState.selectedSetupFilter != null) TvPurpleGlow else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showSetupMenu,
-                            onDismissRequest = { showSetupMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("All Setups") },
-                                onClick = {
-                                    onSetupFilterSelected(null)
-                                    showSetupMenu = false
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Text(
+                                        text = selectedAccountName,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        color = TvPurpleGlow
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = "Switch Account",
+                                        tint = TvPurpleGlow,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
-                            )
-                            DEFAULT_SETUPS.forEach { s ->
+                            }
+
+                            DropdownMenu(
+                                expanded = showAccountMenu,
+                                onDismissRequest = { showAccountMenu = false }
+                            ) {
+                                accounts.forEach { acc ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = acc.name,
+                                                fontWeight = if (selectedAccountId == acc.id) FontWeight.Bold else FontWeight.Normal
+                                            )
+                                        },
+                                        onClick = {
+                                            onAccountFilterSelected(acc.id)
+                                            showAccountMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    actions = {
+                        // Sort Menu Button
+                        Box {
+                            IconButton(onClick = { showSortMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                                    contentDescription = "Sort Trades",
+                                    tint = TvSilverBright
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showSortMenu,
+                                onDismissRequest = { showSortMenu = false }
+                            ) {
+                                TradeSortOption.entries.forEach { opt ->
+                                    DropdownMenuItem(
+                                        text = { Text(opt.displayName) },
+                                        onClick = {
+                                            onSortOptionSelected(opt)
+                                            showSortMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // Setup Filter Menu Button
+                        Box {
+                            IconButton(onClick = { showSetupMenu = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.FilterList,
+                                    contentDescription = "Filter Setup",
+                                    tint = if (uiState.selectedSetupFilter != null) TvPurpleGlow else TvSilverBright
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showSetupMenu,
+                                onDismissRequest = { showSetupMenu = false }
+                            ) {
                                 DropdownMenuItem(
-                                    text = { Text(s) },
+                                    text = { Text("All Setups") },
                                     onClick = {
-                                        onSetupFilterSelected(s)
+                                        onSetupFilterSelected(null)
                                         showSetupMenu = false
                                     }
                                 )
+                                DEFAULT_SETUPS.forEach { s ->
+                                    DropdownMenuItem(
+                                        text = { Text(s) },
+                                        onClick = {
+                                            onSetupFilterSelected(s)
+                                            showSetupMenu = false
+                                        }
+                                    )
+                                }
                             }
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
                 )
-            )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onOpenAddSheet,
-                containerColor = TvPurplePrimary,
-                contentColor = Color.White,
-                shape = CircleShape
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Log Trade")
-            }
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = MaterialTheme.colorScheme.background,
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Scoped Account Quick Stats Summary
-            val closedTrades = trades.filter { it.isClosed }
-            val totalPnl = closedTrades.sumOf { it.profitLoss ?: 0.0 }
-            val wins = closedTrades.count { it.status == TradeStatus.WIN || (it.profitLoss ?: 0.0) > 0 }
-            val losses = closedTrades.count { it.status == TradeStatus.LOSS || (it.profitLoss ?: 0.0) < 0 }
-            val winRate = if (closedTrades.isNotEmpty()) (wins.toDouble() / closedTrades.size) * 100.0 else 0.0
-            val pnlSign = if (totalPnl > 0) "+" else if (totalPnl < 0) "-" else ""
-            val pnlColor = if (totalPnl > 0) TvPurpleGlow else if (totalPnl < 0) TvLossColor else TvSilver
-
-            Surface(
+            },
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = onOpenAddSheet,
+                    containerColor = TvPurplePrimary,
+                    contentColor = Color.White,
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Log Trade")
+                }
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            containerColor = Color.Transparent,
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                border = BorderStroke(1.dp, TvDarkSurfaceBorder)
+                    .fillMaxSize()
+                    .padding(innerPadding)
             ) {
+                // Scoped Account Quick Stats Terminal Glass Ticker
+                val closedTrades = trades.filter { it.isClosed }
+                val totalPnl = closedTrades.sumOf { it.profitLoss ?: 0.0 }
+                val wins = closedTrades.count { it.status == TradeStatus.WIN || (it.profitLoss ?: 0.0) > 0 }
+                val losses = closedTrades.count { it.status == TradeStatus.LOSS || (it.profitLoss ?: 0.0) < 0 }
+                val winRate = if (closedTrades.isNotEmpty()) (wins.toDouble() / closedTrades.size) * 100.0 else 0.0
+                val pnlSign = if (totalPnl > 0) "+" else if (totalPnl < 0) "-" else ""
+                val pnlColor = if (totalPnl > 0) TvPurpleGlow else if (totalPnl < 0) TvLossColor else TvSilver
+
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .terminalGlass(
+                            shape = RoundedCornerShape(14.dp),
+                            backgroundColor = Color(0xDC0F0C18),
+                            borderColor = TvDarkSurfaceBorder,
+                            specularHighlight = Color(0x40A855F7),
+                            elevation = 3.dp
+                        ),
+                    color = Color.Transparent
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text("NET REALIZED P/L", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp, color = TvSilver)
+                            Text(
+                                text = "$pnlSign$${DecimalFormat("#,##0.00").format(Math.abs(totalPnl))}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = FontFamily.Monospace,
+                                color = pnlColor
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("WIN RATE", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp, color = TvSilver)
+                            Text(
+                                text = if (closedTrades.isNotEmpty()) "${DecimalFormat("0.0").format(winRate)}%" else "—",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TvPurpleNumber
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("CLOSED TRADES", fontSize = 10.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp, color = TvSilver)
+                            Text(
+                                text = "${closedTrades.size} ($wins W • $losses L)",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = TvSilverBright
+                            )
+                        }
+                    }
+                }
+
+                // Horizontal Filter Chips: All, Wins, Losses, Breakeven, Open
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text("ACCOUNT NET P/L", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TvSilver)
-                        Text(
-                            text = "$pnlSign$${DecimalFormat("#,##0.00").format(Math.abs(totalPnl))}",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            fontFamily = FontFamily.Monospace,
-                            color = pnlColor
+                    if (uiState.selectedAccountFilterId != null) {
+                        FilterChip(
+                            selected = true,
+                            onClick = { onAccountFilterSelected(null) },
+                            label = { Text("$selectedAccountName ✕", fontSize = 12.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TvPlumContainer,
+                                selectedLabelColor = TvPurpleGlow
+                            ),
+                            border = BorderStroke(1.dp, TvPurplePrimary),
+                            modifier = Modifier.height(32.dp)
                         )
                     }
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("WIN RATE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TvSilver)
-                        Text(
-                            text = if (closedTrades.isNotEmpty()) "${DecimalFormat("0.0").format(winRate)}%" else "—",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TvPurpleNumber
+
+                    TradeResultFilter.entries.forEach { f ->
+                        val isSelected = uiState.resultFilter == f
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { onResultFilterSelected(f) },
+                            label = { Text(f.displayName, fontSize = 12.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TvPurplePrimary,
+                                selectedLabelColor = Color.White,
+                                containerColor = Color(0x66181124),
+                                labelColor = TvSilver
+                            ),
+                            border = if (isSelected) null else BorderStroke(1.dp, TvDarkSurfaceBorder),
+                            modifier = Modifier.height(32.dp)
                         )
                     }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("CLOSED TRADES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = TvSilver)
-                        Text(
-                            text = "${closedTrades.size} ($wins W • $losses L)",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TvSilverBright
+
+                    if (uiState.selectedSetupFilter != null) {
+                        FilterChip(
+                            selected = true,
+                            onClick = { onSetupFilterSelected(null) },
+                            label = { Text("Setup: ${uiState.selectedSetupFilter} ✕", fontSize = 12.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = TvPlumContainer,
+                                selectedLabelColor = TvPurpleGlow
+                            ),
+                            modifier = Modifier.height(32.dp)
                         )
                     }
                 }
-            }
 
-            // Horizontal Filter Chips: All, Wins, Losses, Breakeven, Open
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (uiState.selectedAccountFilterId != null) {
-                    FilterChip(
-                        selected = true,
-                        onClick = { onAccountFilterSelected(null) },
-                        label = { Text("$selectedAccountName ✕", fontSize = 12.sp) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TvPlumContainer,
-                            selectedLabelColor = TvPurpleGlow
-                        ),
-                        border = BorderStroke(1.dp, TvPurplePrimary),
-                        modifier = Modifier.height(32.dp)
-                    )
-                }
+                // Trades List
+                if (trades.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = TvPlumContainer,
+                                border = BorderStroke(1.2.dp, TvPurplePrimary.copy(alpha = 0.6f)),
+                                modifier = Modifier.size(68.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.MenuBook,
+                                        contentDescription = null,
+                                        tint = TvPurpleGlow,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+                            }
 
-                TradeResultFilter.entries.forEach { f ->
-                    val isSelected = uiState.resultFilter == f
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { onResultFilterSelected(f) },
-                        label = { Text(f.displayName, fontSize = 12.sp) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TvPurplePrimary,
-                            selectedLabelColor = Color.White,
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = TvSilver
-                        ),
-                        border = if (isSelected) null else BorderStroke(1.dp, TvDarkSurfaceBorder),
-                        modifier = Modifier.height(32.dp)
-                    )
-                }
+                            Text(
+                                text = "No Trades Recorded",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = TvSilverBright
+                            )
 
-                if (uiState.selectedSetupFilter != null) {
-                    FilterChip(
-                        selected = true,
-                        onClick = { onSetupFilterSelected(null) },
-                        label = { Text("Setup: ${uiState.selectedSetupFilter} ✕", fontSize = 12.sp) },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = TvPlumContainer,
-                            selectedLabelColor = TvPurpleGlow
-                        ),
-                        modifier = Modifier.height(32.dp)
-                    )
-                }
-            }
-
-            // Trades List
-            if (trades.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                            Text(
+                                text = "Calculate a position and tap 'Save as Trade', or tap the + button to log an entry manually.",
+                                fontSize = 13.sp,
+                                color = TvSilver,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 24.dp)
+                            )
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = TvPlumContainer,
-                            border = BorderStroke(1.dp, TvDarkSurfaceBorder),
-                            modifier = Modifier.size(64.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                                    contentDescription = null,
-                                    tint = TvPurpleGlow,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
+                        items(trades, key = { it.id }) { trade ->
+                            val accountName = accounts.firstOrNull { it.id == trade.accountId }?.name
+                            TradeCard(
+                                trade = trade,
+                                accountName = accountName,
+                                onClick = { onTradeClicked(trade) },
+                                onDeleteRequest = { tradePendingDelete = it },
+                                onDuplicateRequest = { onDuplicateTrade(it) },
+                                onEditRequest = { onEditTradeClicked(it) },
+                                modifier = Modifier.animateItem()
+                            )
                         }
-
-                        Text(
-                            text = "No Trades Recorded",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TvSilverBright
-                        )
-
-                        Text(
-                            text = "Calculate a position and tap 'Save as Trade', or tap the + button to log an entry manually.",
-                            fontSize = 13.sp,
-                            color = TvSilver,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.padding(horizontal = 24.dp)
-                        )
-                    }
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 80.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(trades, key = { it.id }) { trade ->
-                        val accountName = accounts.firstOrNull { it.id == trade.accountId }?.name
-                        TradeCard(
-                            trade = trade,
-                            accountName = accountName,
-                            onClick = { onTradeClicked(trade) }
-                        )
                     }
                 }
             }
-        }
 
-        // Details Bottom Sheet
-        if (uiState.selectedTradeForDetail != null) {
-            val detailAccountName = accounts.firstOrNull { it.id == uiState.selectedTradeForDetail?.accountId }?.name
-            TradeDetailBottomSheet(
-                trade = uiState.selectedTradeForDetail!!,
-                accountName = detailAccountName,
-                sheetState = detailSheetState,
-                onDismiss = onDismissDetailSheet,
-                onEdit = onEditTradeClicked,
-                onDuplicate = onDuplicateTrade,
-                onDelete = onDeleteTrade
-            )
-        }
+            // Details Bottom Sheet
+            uiState.selectedTradeForDetail?.let { detailTrade ->
+                val detailAccountName = accounts.firstOrNull { it.id == detailTrade.accountId }?.name
+                TradeDetailBottomSheet(
+                    trade = detailTrade,
+                    accountName = detailAccountName,
+                    sheetState = detailSheetState,
+                    onDismiss = onDismissDetailSheet,
+                    onEdit = onEditTradeClicked,
+                    onDuplicate = onDuplicateTrade,
+                    onDelete = { tradeToDelete ->
+                        tradePendingDelete = tradeToDelete
+                    }
+                )
+            }
 
-        // Add / Edit Trade Bottom Sheet
-        if (uiState.isAddSheetOpen) {
-            AddEditTradeSheet(
-                trade = uiState.selectedTradeForEdit,
-                availableAccounts = accounts,
-                sheetState = addSheetState,
-                onSave = onSaveTrade,
-                onDismiss = onDismissAddEditSheet
-            )
+            // Add / Edit Trade Bottom Sheet
+            if (uiState.isAddSheetOpen) {
+                AddEditTradeSheet(
+                    trade = uiState.selectedTradeForEdit,
+                    availableAccounts = accounts,
+                    sheetState = addSheetState,
+                    onSave = onSaveTrade,
+                    onDismiss = onDismissAddEditSheet
+                )
+            }
+
+            // Permanent Delete Confirmation Modal Dialog
+            tradePendingDelete?.let { tradeToDelete ->
+                DeleteTradeDialog(
+                    trade = tradeToDelete,
+                    accountName = accounts.firstOrNull { it.id == tradeToDelete.accountId }?.name,
+                    onConfirmDelete = {
+                        onDeleteTrade(it)
+                        tradePendingDelete = null
+                    },
+                    onDismiss = {
+                        tradePendingDelete = null
+                    }
+                )
+            }
         }
     }
 }
